@@ -1,0 +1,158 @@
+<!doctype html>
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<html>
+<head>
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-resizable-behavior/iron-resizable-behavior.html">
+
+</head>
+
+<dom-module id="journey-step">
+  <template>
+    <style is="custom-style" include="iron-flex iron-flex-alignment iron-positioning">
+      :host {
+        display: block;
+        box-sizing: border-box;
+        box-shadow: 0px 5px 5px -5px black;
+        padding-top: 40px; /* Ensure enough room for the bubble */
+        margin-top: 1em;
+        margin-bottom: 1em;
+        @apply --journey-step;
+      }
+
+      :host([no-index]) {
+        padding-top: 0px;
+      }
+
+      :host > div {
+        background-color: #fff;
+      }
+
+      #index {
+        color: #fff;
+        background-color: #39CD89;
+        line-height: 80px;
+        border-radius: 40px;
+        font-size: 50px;
+        margin-top: -40px;
+        margin-bottom: -40px; /* Pull up the title to be flush with the top */
+        width: 80px;
+        height: 80px;
+        box-sizing: border-box;
+        overflow: hidden;
+        text-align: center;
+        z-index: 10; /* On top of the title */
+      }
+
+      #content {
+        padding: 1em 2em;
+      }
+
+      #heading {
+        padding: calc(40px + 0.5em) 2em 0 2em; /* Make room for the index bubble */
+        color: #00AEFF;
+        font-size: 2em;
+        line-height: 1.2em;
+        font-weight: 700;
+        text-align: center;
+        cursor: pointer;
+        text-decoration: none;
+      }
+
+      [no-index] #heading {
+        padding-top: 1em;
+      }
+
+      #heading > div > iron-icon {
+        --iron-icon-width: 24px;
+        --iron-icon-height: 24px;
+        display: none;
+        /* Shift to the left just the width of the icon, not the padding */
+        margin-left:  calc(-24px);
+        /* Shift to the right the width of the icon *and* the padding */
+        padding-left: calc(24px + 0.5em);
+        /* Remove space for the link from the DOM */
+        margin-right: calc(-24px - 0.5em);
+      }
+
+      #heading:hover > div > iron-icon {
+        display: inline-block;
+      }
+    </style>
+    <div class="layout vertical">
+      <div hidden$="[[isEmpty(heading)]]" class="layout vertical">
+        <div hidden$="[[isEmpty(stepIndex)]]" id="index" class="self-center">[[stepIndex]]</div>
+        <a href$="[[basePath]]#[[slugify(heading)]]" class="layout horizontal center center-justified" id="heading">
+          <div hidden$="[[isEmpty(heading)]]">[[heading]]<iron-icon icon="icons:link"></iron-icon>
+          </div>
+        </a>
+      </div>
+      <div id="content"><slot></slot></div>
+    </div>
+  </template>
+
+  <script>
+    document.addEventListener("WebComponentsReady", function() {
+      "use strict";
+      Polymer({
+        is: "journey-step",
+        properties: {
+          noIndex: {
+            type: Boolean,
+            computed: "isEmpty(stepIndex)",
+            reflectToAttribute: true
+          },
+          name: {
+            type: String,
+            computed: "slugify(heading)",
+            reflectToAttribute: true,
+            notify: true
+          },
+          basePath: {
+            type: String,
+            value: ""
+          },
+          stepIndex: {
+            type: Number,
+            value: 0
+          },
+          heading: {
+            type: String,
+            value: "",
+            reflectToAttribute: true
+          }
+        },
+
+        slugify: function(string) {
+          string = string.toLowerCase();
+          string = string.replace(/\s/g, "-");
+          string = encodeURIComponent(string);
+          return string;
+        },
+
+        isEmpty: function(object) {
+          if (!object) {
+            return true;
+          }
+          if (Array.isArray(object) && object.length == 0) {
+            return true;
+          }
+          if (typeof object === "object" && Object.getOwnPropertyNames(object).length == 0) {
+            return true;
+          }
+
+          return !object;
+        },
+
+        ready: function() {
+        }
+      });
+    });
+  </script>
+</dom-module>
+</html>

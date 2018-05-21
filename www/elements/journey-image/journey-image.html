@@ -1,0 +1,358 @@
+<!doctype html>
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<html>
+<head>
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-resizable-behavior/iron-resizable-behavior.html">
+
+</head>
+
+<dom-module id="journey-image">
+  <template>
+    <style is="custom-style" include="iron-flex iron-flex-alignment iron-positioning">
+    :host {
+      display: inline-block;
+      box-sizing: border-box;
+      @apply --journey-image;
+    }
+
+    #container {
+    }
+
+    #container > div {
+      border: 1px solid #444;
+      box-shadow: 0px 5px 5px -5px;
+      background-color: white;
+      box-sizing: border-box;
+    }
+
+    #image {
+      background-position: 0 0;
+      background-size: cover;
+      background-repeat: no-repeat no-repeat;
+      cursor: pointer;
+
+      @apply --journey-image-box;
+    }
+
+    #image.error {
+      background-color: #444;
+      color: #fff;
+      padding: 1em;
+      text-align: center;
+    }
+
+    #caption {
+      border-top: 1px solid #444;
+      box-sizing: border-box;
+      padding: 0.5em;
+      overflow: hidden;
+
+      @apply --journey-image-caption;
+    }
+
+    #lightbox {
+      position: fixed;
+      background-color: rgba(0, 0, 0, 0.4);
+      padding: 32px;
+      box-sizing: padding-box;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      right: 0;
+      opacity: 0;
+      -webkit-transition: opacity 0.25s ease-in-out;
+      -moz-transition: opacity 0.25s ease-in-out;
+      -o-transition: opacity 0.25s ease-in-out;
+      transition: opacity 0.25s ease-in-out;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    #lightbox #cell-container {
+      border: 1px solid #444;
+      box-shadow: 0px 10px 10px -7px;
+      background-color: white;
+      box-sizing: border-box;
+    }
+
+    #lightbox #cell {
+      background-color: #222;
+      display: inline-block;
+      box-sizing: border-box;
+      background-position: center;
+      background-size: contain;
+      background-repeat: no-repeat;
+    }
+
+    #lightbox #cell-caption {
+      border-top: 1px solid #444;
+      box-sizing: border-box;
+      padding: 0.5em;
+      overflow: hidden;
+      background: white;
+    }
+
+    #lightbox:not(.hidden) {
+      cursor: pointer;
+      pointer-events: all;
+      opacity: 1;
+    }
+
+    </style>
+    <div id="container" class="flex layout horizontal center-justified">
+      <div class="layout vertical">
+        <div id="image" on-click="_onImageClick"></div>
+        <div id="caption" hidden="[[isEmpty(alt)]]">[[alt]]</div>
+      </div>
+    </div>
+    <div id="lightbox" on-click="_onLightboxClick" class="hidden layout vertical">
+      <div id="cell-container" class="flex layout vertical">
+        <div id="cell" class="flex"></div>
+        <div id="cell-caption" hidden="[[isEmpty(alt)]]">[[alt]]</div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    document.addEventListener("WebComponentsReady", function() {
+      "use strict";
+      Polymer({
+        is: "journey-image",
+        properties: {
+          server: {
+            type: String,
+            value: ""
+          },
+          src: {
+            type: String
+          },
+          alt: {
+            type: String,
+            value: ""
+          },
+          attributes: {
+            type: Object,
+            value: {
+              size: "medium",
+              flow: "inline",
+              align: "left"
+            }
+          }
+        },
+
+        behaviors: [
+          Polymer.IronResizableBehavior
+        ],
+
+        observers: [
+          "_srcChanged(server, src)",
+          "_attributesChanged(attributes)"
+        ],
+
+        listeners: {
+          "iron-resize": "_onIronResize"
+        },
+
+        _onLightboxClick: function(event) {
+          if (event.ctrlKey) {
+            window.open(this.url, "_blank")
+          } else {
+            this.$.lightbox.classList.add("hidden");
+          }
+        },
+
+        _onImageClick: function(event) {
+          if (event.ctrlKey) {
+            window.open(this.url, "_blank")
+          } else {
+            this.$.lightbox.classList.remove("hidden");
+          }
+        },
+
+        _onIronResize: function(event) {
+          this.debounce("resize", function() {
+            this._resizeImage();
+          }, 60);
+        },
+
+        isEmpty: function(object) {
+          if (!object) {
+            return true;
+          }
+          if (Array.isArray(object) && object.length == 0) {
+            return true;
+          }
+          if (typeof object === "object" && Object.getOwnPropertyNames(object).length == 0) {
+            return true;
+          }
+          return !object;
+        },
+
+        _attributesChanged: function(attributes) {
+          if (!attributes) {
+            return;
+          }
+
+          /* Explicitly validate all values past in */
+          for (var key in attributes) {
+            switch (key) {
+            case "size":
+              switch (attributes[key]) {
+              case "full":
+              case "large":
+              case "medium":
+              case "small":
+                this._resizeImage();
+                break;
+
+              default:
+                continue;
+              }
+              break;
+
+            case "align":
+              switch (attributes[key]) {
+              case "left":
+                this.style.margin = "0em 1em 1em 0em";
+                this.style.float = "left";
+                this.$.container.classList.remove("center-justified");
+                break;
+              case "right":
+                this.style.margin = "0em 0em 1em 1em";
+                this.style.float = "right";
+                this.$.container.classList.remove("center-justified");
+                break;
+              case "center":
+                this.style.margin = "0em 0em 1em 0em";
+                this.style.display = "block";
+                this.style.float = "initial";
+                this.$.container.classList.add("center-justified");
+                break;
+              }
+              break;
+
+            default:
+              delete attributes[key];
+              break;
+            }
+          }
+        },
+
+        /* Fired when this.image's onload() completes, or when the style
+         * attributes are set */
+        _resizeImage: function() {
+          if (!this.parentElement) {
+            this.async(this._resizeImage, 250);
+            return;
+          }
+          var el = this.$.image, height, size;
+
+          switch (this.attributes.size) {
+          case "full":
+            size = parseInt(this.parentElement.clientWidth);
+            break;
+          case "large":
+            size = 480;
+            break;
+          case "medium":
+            size = 240;
+            break;
+          case "small":
+            size = 128;
+            break;
+          }
+
+          size = Math.min(size, this.parentElement.clientWidth);
+          this.$.image.style.width = size + "px";
+          this.$.caption.style.width = size + "px";
+
+          el.style.backgroundImage = 'url(' + this.url + ')';
+          this.$$("#lightbox #cell").style.backgroundImage = "url("+this.url+")";
+
+          /* If the image is taller than wide, clamp to 128px tall */
+          if (!this.image || this.image.height > this.image.width) {
+            height = size;
+          } else {
+            height = size * this.image.height / this.image.width;
+          }
+
+          this.$.image.style.height = Math.floor(height) + 'px';
+        },
+
+        _srcChanged: function(server, src) {
+          var height, params = src.replace(/^[^?]*\?/, ""), attributes;
+          if (params != src) {
+            attributes = Object.assign({}, this.attributes);
+
+            params = params.split("&").filter(function(param) {
+              var parts = param.split("=");
+              if (parts && parts.length == 2 && parts[0] == "s") {
+                parts[1].split(",").forEach(function(part) {
+                  part = part.split(":");
+                  if (part.length == 2) {
+                    attributes[part[0]] = part[1];
+                  }
+                }.bind(this));
+                return false;
+              }
+              return true;
+            }.bind(this));
+          } else {
+            params = null;
+          }
+
+          /* Format of style syntax is to use a GET parameter called "s"
+           * with a CSV set of tuples separated by ":", for example:
+           * ?s=size:medium,align:left,flow:inline
+           *
+           * Would result in a JSON item being returned as:
+           * {
+           *   "size": "medium",
+           *   "align": "left",
+           *   "flow": "inline";
+           * }
+           */
+
+          /* Strip off all GET parameters and then re-add all but the "s="
+           * if there were any */
+          src = src.replace(/\?.*$/, "");
+          if (params && params.length) {
+            src += "?" + params.join("&");
+          }
+
+          /* If 'server' is set, make sure it  ends in a slash */
+          server = (server && server != "") ? server.replace(/\/$/, "") + "/" : "";
+
+          /* Translate the path to pull from the GIT route */
+          this.url = server + src.replace(/([^/]*)\//, "api/v1/content/$1/assets/");
+
+          this.image = new Image();
+          this.$.image.classList.remove("error");
+
+          this.image.onerror = function(error) {
+            console.error(error);
+            this.$.image.classList.add("error");
+            this.$.image.innerHTML = "<b>Error loading image.</b>";
+          }.bind(this);
+
+          if (params != null) {
+            this.attributes = attributes;
+          }
+
+          /* Instal an 'onload' handler to clamp the size to 128px if needed
+           * and ensure that the element is large enough to fit it. */
+          this.image.onload = this._resizeImage.bind(this);
+
+          this.image.src = this.url;
+        }
+      });
+    });
+  </script>
+</dom-module>
+</html>

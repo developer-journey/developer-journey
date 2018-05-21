@@ -1,0 +1,79 @@
+<!--
+
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+
+This page is used as the OAuth2 callback from GitLab.
+
+The flow is:
+
+1. journey-banner.html: User clicks "Sign In". That opens a new browser window
+   pointed to GitLab's OAuth/authorize page, providing the client_id provided
+   when this application was registered with GitLab, and a redirect_uri
+   pointing to the route that loads this page (/authenticate)
+   That new browser window has a Javascript reference to journey-banner.html
+   via "window.opener"
+
+2. GitLab prompts the user to log in, and to then authorize the use of the
+   Developer Journey application. On success, GitLab loads the redirect_uri
+   (/authenticate) providing the query parameter 'code' with the grant access
+   code.
+
+3. This page (loaded via #2) takes the code provided via the URL parameter and
+   sends it to the backend via the /authenticate/:code providing the grant
+   access code.
+
+4. The backend (server/routes/auth.js) receives the grant request token
+   via the /authenticate/:code route and uses it to submit a request
+   to the GitLab API to fetch the user details, returning the results
+   to the front-end.
+
+5. On success of the catll to /authenticate/:code, the front end calls
+   window.opener.authenticated() to provide the user credentials to
+   the Developer Journey application. The "authenticated" callback function
+   is registered by gitlab-oauth.html during it's "attached" handler.
+
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+
+    <title>Developer Journey: OAuth</title>
+    <meta name="description" content="Developer Journey">
+
+    <script>'<base href="BASEPATH">';</script>
+
+    <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
+
+    <!-- See https://goo.gl/OOhYW5 -->
+    <link rel="manifest" href="manifest.json">
+
+    <script src="bower_components/es6-shim/es6-shim.min.js"></script>
+    <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+    <link rel="import" href="bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+    <link rel="import" href="bower_components/app-layout/app-toolbar/app-toolbar.html">
+
+    <style is="custom-style" include="iron-flex iron-positioning">
+      body,* {
+        font-family: Helvetica Neue,Helvetica,Arial,sans-serif;
+      }
+
+      b,strong {
+        font-family: Helvetica Neue,Helvetica,Arial,sans-serif;
+      }
+
+      body {
+        margin: 0;
+      }
+    </style>
+
+    <link rel="import" href="src/dj-authenticate/dj-authenticate.html">
+
+  </head>
+
+  <body class="fullbleed vertical layout">
+    <dj-authenticate class="fit"></dj-authenticate>
+  </body>
+</html>

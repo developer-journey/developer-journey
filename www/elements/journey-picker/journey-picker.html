@@ -1,0 +1,858 @@
+<!doctype html>
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<html>
+<head>
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/app-route/app-route.html">
+
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-timeago/iron-timeago.html">
+
+<link rel="import" href="../../bower_components/paper-tabs/paper-tabs.html">
+<link rel="import" href="../../bower_components/paper-tabs/paper-tab.html">
+
+<link rel="import" href="../../elements/journey-info/journey-info.html">
+<link rel="import" href="../live-preview-styles/live-preview-styles.html">
+
+<script src="../../request.js"></script>
+
+</head>
+
+<dom-module id="journey-thumb">
+  <template>
+    <style is="custom-style" include="iron-flex iron-flex-alignment iron-positioning live-preview-styles">
+    :host {
+      min-width: 240px;
+      max-width: 480px;
+      min-height: 360px;
+      max-height: 360px;
+      border: 1px solid #ddd;
+/*
+      border: 1px solid var(--gray);
+      background-color: var(--gray);
+*/
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+      transition: all 400ms;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+/*
+    @media (min-width: 30rem){
+      :host{
+        width: calc(50% - 1rem);
+        margin-right: 1rem;
+      }
+    }
+
+    @media (min-width: 48rem){
+      :host{
+        width: calc(100% / 4 - 1rem);
+      }
+    }
+
+    @media (min-width: 60rem){
+      :host{
+        width: calc(25% - 1rem);
+      }
+    }
+
+    @media (min-width: 200rem){
+      :host{
+        width: calc(100% / 5 - 1rem);
+      }
+    }
+*/
+    iron-timeago {
+      margin-right: -0.5ex;
+    }
+
+    :host(:hover) {
+      border-color: #888;
+      box-shadow: 0px 4px 2px -2px #888;
+    }
+
+    #content {
+      border-top: 1px solid #ddd;
+
+      z-index: 150; /* Over ribbon */
+      position: absolute;
+      padding: 0.5em;
+      box-sizing: border-box;
+      width: 100%;
+      height: 100px;
+      font-size: 0.8em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      height: 200px;
+      background: white;
+      transition: all 0.25s ease-in-out;
+      bottom: -80px;
+    }
+
+    :host(:hover) #content {
+      border-color: #888;
+      bottom: 0px;
+/*
+      padding: 1rem;
+*/
+    }
+
+    #thumbnail {
+      position: relative;
+      top: 0px;
+      left: 0px;
+      right: 0px;
+      height: 240px;
+      background-position: 50% 50%;
+      background-size: cover;
+      background-repeat: no-repeat;
+      box-sizing: border-box;
+      color: white;
+      overflow: hidden;
+      cursor: pointer;
+      background-color: #fff;
+    }
+
+    #title {
+      font-size: 1.1em;
+      color: var(--secondary);
+      cursor: pointer;
+      font-weight: bold;
+      box-sizing: border-box;
+      text-decoration: none;
+      margin-bottom: 0.5em;
+    }
+
+    #author {
+      margin-top: 0.5em;
+      padding-top: 0.5em;
+      border-top: 1px solid #aaa;
+      font-size: 0.8em;
+      color: #444;
+    }
+
+    #info {
+      color: #fff;
+      box-sizing: border-box;
+    }
+
+    a {
+      color: var(--secondary);
+      text-decoration: none;
+      transition: all 400ms;
+    }
+
+    a:hover {
+      color: var(--secondary-light);
+      text-decoration: none;
+    }
+
+    #thumbnail a:hover {
+      text-decoration: none;
+    }
+
+    #journeyLink {
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    #stamp {
+      margin-top: 1em;
+    }
+
+    #ribbon {
+      display: none;
+      position: absolute;
+      text-align: center;
+
+      z-index: 100;
+
+      color: black;
+      background: white;
+
+      width: 200px;
+      height: auto;
+
+      font-variant: small-caps;
+      font-size: 0.8em;
+      font-weight: normal;
+      line-height: 30px;
+      right: -50px;
+      bottom: 25px;
+      border-top: 1px solid #ddd;
+      border-bottom: 1px solid #f0f0f0;
+      box-sizing: border-box;
+
+      top: auto;
+      left: auto;
+
+      -webkit-transform: rotate(-45deg);
+         -moz-transform: rotate(-45deg);
+          -ms-transform: rotate(-45deg);
+           -o-transform: rotate(-45deg);
+              transform: rotate(-45deg);
+    }
+
+    :host([show-type]) #ribbon {
+      display: inline-block;
+    }
+
+    #engagements {
+      opacity: 0.5;
+      position: absolute;
+      bottom: 0px;
+      left: 0px;
+      right: 0px;
+      height: auto;
+      margin: 0 0.5em;
+      cursor: default;
+    }
+
+    #engagements > div {
+      margin-bottom: 0.25em;
+    }
+
+    #engagements .social > div {
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      padding: 0.25em 0.5em;
+    }
+
+    #engagements .social > div:not(:first-child) {
+      margin-left: 0.25em;
+    }
+
+    #tags {
+      padding-bottom: 1em;
+    }
+
+    .tag-title {
+      font-weight: bold;
+      margin-right: 0.25em;
+    }
+
+    .tag-list > div > a {
+      font-weight: normal;
+      white-space: nowrap;
+    }
+
+    .tag-list > div {
+      display: inline-block;
+    }
+
+    .tag-list > div:not(:last-of-type)::after {
+      content: ", ";
+    }
+
+    </style>
+
+    <a id="journeyLink" href="[[entry.journey.path]]/[[entry.path]]" on-click="_loadJourney">
+      <div id="thumbnail" class="layout vertical">
+        <div id="ribbon">[[entry.contentType]]</div>
+      </div>
+    </a>
+    <div id="content" class="layout vertical">
+      <div id="title"><a href="[[entry.journey.path]]/[[entry.path]]" on-click="_loadJourney">[[_safeEntryTitle(entry)]]</a></div>
+      <div>In <a href="[[entry.journey.path]]" on-click="_loadJourneyIndex">"[[entry.journey.title]]"</a>
+        by <a href="users/[[entry.parsed.author]]">[[entry.parsed.author]]</a>.</div>
+      <div id="stamp">
+        Updated <iron-timeago hidden$="[[!isEmpty(date)]]" datetime="[[entry.commit.authored_date]]"></iron-timeago>
+        [[date]].
+      </div>
+      <div id="engagements" class="layout vertical">
+        <div hidden$="[[isEmpty(entry.parsed.tags)]]" id="tags" class="layout horizontal">
+          <div class="tag-title">Tags:</div>
+          <div class="tag-list">
+            <template is="dom-repeat" items="[[_getTags(entry)]]">
+              <div><a href="tags/[[item]]">[[item]]</a></div>
+            </template>
+          </div>
+        </div>
+        <div class="social layout horizontal">
+          <div>Views [[entry.views]]</div>
+          <div>Usefulness [[entry.rating]]</div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </template>
+  <script>
+  document.addEventListener("WebComponentsReady", function() {
+    "use strict";
+    Polymer({
+      is: "journey-thumb",
+      properties: {
+        entry: Object,
+        route: {
+          type: Object,
+          reflectToAttribute: true
+        },
+        showType: {
+          type: Boolean,
+          value: false
+        },
+        postType: String
+      },
+      observers: [
+        "_entryChanged(entry)"
+      ],
+
+      _getTags: function(entry) {
+        if (!entry || !entry.parsed || !entry.parsed.tags) {
+          return [];
+        }
+        if (Array.isArray(entry.parsed.tags)) {
+          return entry.parsed.tags;
+        }
+        if (typeof entry.parsed.tags === "string") {
+          return entry.parsed.tags.split(",");
+        }
+        return [ entry.parsed.tags ];
+      },
+
+      isEmpty: function(object) {
+        if (!object) {
+          return true;
+        }
+        if (Array.isArray(object) && object.length == 0) {
+          return true;
+        }
+        if (typeof object === "object" && Object.getOwnPropertyNames(object).length == 0) {
+          return true;
+        }
+        return !object;
+      },
+
+      _loadJourney: function(event) {
+        var path = event.currentTarget ? event.currentTarget.getAttribute("href") :
+          this.entry.journey.path + "/" + this.entry.path;
+        this.set("route.path", path);
+        event.preventDefault();
+      },
+
+      _loadJourneyIndex: function(event) {
+        var path = event.currentTarget ? event.currentTarget.getAttribute("href") :
+          this.entry.journey.path;
+        this.set("route.path", path);
+        event.preventDefault();
+      },
+
+      _safeEntryTitle: function(entry) {
+        if (!entry) {
+          console.warn("_safeEntryTitle called with null");
+          return "Unknown";
+        }
+        var title = (entry.parsed && ('title' in entry.parsed)) ? entry.parsed.title : entry.name;
+          return title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      },
+
+      _entryChanged: function(entry) {
+        var thumb = "assets/logo.png";
+        if (!entry) {
+          console.warn("_entryChanged called with null");
+          return;
+        }
+
+        if (!entry.journey) {
+          throw "Back reference not set on entry";
+        }
+        if (entry.journey.parsed && entry.journey.parsed.cover) {
+          thumb = 'api/v1/content/' + entry.journey.path + '/assets/' + entry.journey.parsed.cover;
+        } else {
+          thumb = 'api/v1/content/' + entry.journey.path + "/assets/cover.png";
+        }
+
+        this.$.thumbnail.style.backgroundImage = "url(" + thumb + ")";
+
+        var now = Date.now(), then = new Date(entry.commit.authored_date);
+        if (Math.floor(now / 86400000) != Math.floor(then.getTime() / 86400000)) {
+          var months = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December"
+          ];
+          var postfix = [
+            "th", // 0th
+            "st", // 1st
+            "nd", // 2nd
+            "rd", // 3rd
+            "th", // 4th
+            "th", // 5th
+            "th", // 6th
+            "th", // 7th
+            "th", // 8th
+            "th", // 9th
+          ];
+          this.date = months[then.getMonth()] + " " +
+            then.getDate() + postfix[then.getDate() % 10] + ", " +
+            then.getFullYear();
+        } else {
+          this.date = "";
+        }
+      }
+    });
+  });
+  </script>
+</dom-module>
+
+<dom-module id="journey-picker">
+  <template>
+    <style is="custom-style" include="iron-flex iron-flex-alignment iron-positioning">
+    h3{
+      margin: 1rem 0;
+      color: var(--secondary);
+    }
+
+    #main-content {
+      padding: 0 1em;
+      margin: 0 auto;
+      max-width: 1024px;
+      min-width: calc(240px + 0.5em);
+      box-sizing: border-box;
+    }
+
+    #main-content p {
+      line-height: 1.5em;
+      font-size: 1.25em;
+    }
+
+    #main-content p:first-child {
+      margin-top: 0;
+    }
+
+    #create {
+      color: var(--paper-input-container-color, var(--secondary-text-color));
+      text-transform: capitalize;
+      font-weight: bold;
+      border-radius: 3px;
+      color: white;
+      background-color: #00A68C; /* Pantone 16-5533 Arcadia */
+      margin-left: 0;
+    }
+
+    journey-thumb {
+      margin: 0 0.5em 0.5em 0;
+    }
+
+    /* Copy sizing styles from journey-thumb:host and journey-thumb */
+    .spacer {
+      min-width: 240px;
+      max-width: 480px;
+      box-sizing: border-box;
+      height: 0px;
+      margin: 0 0.5em 0.5em 0;
+    }
+
+    .thumb-box {
+      margin-right: -0.5em; /* Remove right-margin from journey-thumb */
+      display: flex;
+      flex-wrap: wrap;
+      flex-direction: row;
+      justify-content: flex-start;
+    }
+
+    .pages div:not(:last-of-type) {
+      margin-right: 0.5em;
+    }
+
+    .pages div:first-of-type { /* Page #s, but not 'Page:' */
+      cursor: default;
+    }
+
+    .pages div:not(:first-of-type) { /* Page #s, but not 'Page:' */
+      cursor: pointer;
+    }
+
+    .pages div:not(:first-of-type):hover { /* Page #s, but not 'Page:' */
+      text-decoration: underline;
+    }
+
+    .pages div[active] {
+      font-weight: bold;
+    }
+
+    .pages {
+      margin-bottom: 2em;
+    }
+
+    .page-range {
+      font-weight: normal;
+      margin-left: 0.5em;
+      font-size: 0.6em;
+    }
+
+    paper-tabs {
+      background-color: #eee;
+      --paper-tabs-selection-bar-color: black;
+    }
+    </style>
+
+    <app-route route="{{route}}"
+        pattern="/:filter"
+        data="{{routeData}}"
+        tail="{{tail}}">
+    </app-route>
+
+    <paper-tabs selected="{{filter}}" attr-for-selected="filter" fallback-selection="all">
+      <paper-tab filter="all">All posts ([[all.length]])</paper-tab>
+      <paper-tab filter="tutorials">Tutorials ([[tutorials.length]])</paper-tab>
+      <paper-tab filter="status-reports">Status reports ([[statusReports.length]])</paper-tab>
+      <paper-tab filter="blogs">Blog posts ([[blogs.length]])</paper-tab>
+      <paper-tab filter="personal" hidden$="[[!authorized]]">Your posts ([[personal.length]])</paper-tab>
+    </paper-tabs>
+
+    <div id="main-content" class="layout vertical">
+      <div class="layout vertical">
+        <div class="layout horizontal justified">
+          <h1 class="layout horizontal center">[[title]]<div class="page-range" hidden$="[[!range]]"> ([[range]])</div></h1>
+          <div hidden$="[[isEmpty(pages)]]" class="pages layout horizontal self-end">
+            <div>Page:</div>
+            <template is="dom-repeat" items="[[pages]]">
+              <div on-tap="_switchPage" active$="[[item.active]]">[[item.page]]</div>
+            </template>
+          </div>
+        </div>
+
+        <div hidden$="[[!isEmpty(filtered)]]" class="layout vertical start">
+            <p>There aren't any posts here! Creating a new post is quick and
+              easy. Why don't you publish something now?</p>
+            <paper-button id="create" on-tap="_create">create a post</paper-button>
+        </div>
+        <div class="thumb-box layout horizontal wrap">
+          <template is="dom-repeat" items="[[filtered]]" as="post">
+            <journey-thumb show-type$="[[showType]]" route="{{route}}" class="flex" entry="[[post]]"></journey-thumb>
+          </template>
+          <div class="spacer flex"></div>
+          <div class="spacer flex"></div>
+          <div class="spacer flex"></div>
+          <div class="spacer flex"></div>
+          <div class="spacer flex"></div>
+        </div>
+        <div hidden$="[[isEmpty(pages)]]" class="pages layout horizontal self-end">
+          <div>Page:</div>
+          <template is="dom-repeat" items="[[pages]]">
+            <div on-tap="_switchPage" active$="[[item.active]]">[[item.page]]</div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    document.addEventListener("WebComponentsReady", function() {
+      "use strict";
+      Polymer({
+        is: "journey-picker",
+        properties: {
+          showType: Boolean,
+          title: String,
+          all: {
+            type: Array,
+            value: []
+          },
+          statusReports: {
+            type: Array,
+            value: []
+          },
+          blogs: {
+            type: Array,
+            value: []
+          },
+          tutorials: {
+            type: Array,
+            value: []
+          },
+          journeys: {
+            type: Array,
+            value: []
+          },
+          authorized: {
+            type: Boolean,
+            value: false
+          },
+          activePage: Number,
+          filter: {
+            type: String,
+            value: "tutorials"
+          },
+          route: {
+            type: Object,
+            reflectToAttribute: true
+          },
+          pages: Array
+        },
+
+        observers: [
+          "_authorizationChanged(authorization)",
+          "_updatePersonals(journeys, authorized)",
+          "_filterChanged(journeys, filter)"
+        ],
+
+        _filterChanged: function(journeys, filter) {
+          if (!filter) {
+            return;
+          }
+
+          switch (filter) {
+            case "personal":
+            case "blogs":
+            case "status-reports":
+            case "tutorials":
+            case "all":
+              break;
+            return;
+          }
+
+          var all = [], blogs = [], statusReports = [], tutorials = [];
+          this.journeys.forEach(function(journey) {
+            journey.files.forEach(function(entry) {
+
+              /* Content defaults to being 'blog' */
+              entry.contentType = "blog";
+              all.push(entry);
+
+              if (!entry.parsed || !entry.parsed.type) {
+                blogs.push(entry);
+                return;
+              }
+
+              /* Type: MSR or WSR or STATUS or STATUS-REPORT */
+              if (/^((status(-report)?)|([wm]sr))$/i.exec(entry.parsed.type)) {
+                entry.contentType = "status report";
+                statusReports.push(entry);
+              } else if (/^(tutorial)|(instructable)|(diy)$/i.exec(entry.parsed.type)){
+                entry.contentType = "tutorial";
+                tutorials.push(entry);
+              } else {
+                blogs.push(entry);
+              }
+            });
+          });
+
+          var prefix, target;
+          switch (filter) {
+          case "personal":
+            this.showType = true;
+            this.title = "Your posts";
+            target = this.personal;
+            break;
+
+          case "blogs":
+            this.showType = false;
+            this.title = "Blog posts";
+            target = blogs;
+            break;
+
+          case "status-reports":
+            this.showType = false;
+            this.title = "Status reports";
+            target = statusReports;
+            break;
+
+          case "tutorials":
+            this.showType = false;
+            this.title = "Tutorials";
+            target = tutorials;
+            break;
+
+          case "all":
+            this.showType = true;
+            this.title = "All posts";
+            target = all;
+            break;
+          }
+
+          /* If the filter is changing, reset the page and add to the route
+           * history */
+          if (this.oldFilter != filter) {
+            this.activePage = 0;
+            this.oldFilter = filter;
+            this.set("route.path", "/" + filter);
+          }
+
+
+
+          target.sort(function(a, b) {
+            a = new Date(a.commit.committed_date).getTime();
+            b = new Date(b.commit.committed_date).getTime();
+            return b - a;
+          });
+
+          this.filtered = target.slice(this.activePage * 12, (this.activePage + 1) * 12);
+
+          var pageCount = Math.ceil(target.length / 12), pages = [];
+          if (pageCount > 1) {
+            for (var i = 0; i < pageCount; i++) {
+              pages.push({
+                page: i + 1,
+                active: this.activePage == i
+              });
+            }
+
+            this.range = (this.activePage * 12 + 1) + "-" + Math.min(this.activePage * 12 + 12, target.length);
+          } else {
+            this.range = "";
+          }
+          this.pages = pages;
+          this.all = all;
+          this.blogs = blogs;
+          this.statusReports = statusReports;
+          this.tutorials = tutorials;
+        },
+
+        _switchPage: function(event) {
+          console.log("Changing to page " + event.model.item.page);
+          this.activePage = (event.model.item.page - 1);
+          this._filterChanged(this.journeys, this.filter);
+          document.body.querySelector("dj-app").$.appHeader.scroll(0, 0);
+        },
+
+        _create: function() {
+          document.querySelector("dj-app").$.banner.create();
+        },
+
+        _authorizationChanged: function() {
+          this.authorized = this.authorization && this.authorization.username;
+        },
+
+        isEmpty: function(object) {
+          if (!object) {
+            return true;
+          }
+          if (Array.isArray(object) && object.length == 0) {
+            return true;
+          }
+          if (typeof object === "object" && Object.getOwnPropertyNames(object).length == 0) {
+            return true;
+          }
+          return !object;
+        },
+
+        _updatePersonals: function(journeys, authorized) {
+          if (authorized) {
+            var entries = [],
+              name = this.authorization.name, authored;
+
+            journeys.forEach(function(journey) {
+              authored = journey.files.filter(function(entry) {
+                if (entry.commit.committer_name == name) {
+                  return true;
+                }
+                if (entry.parsed && entry.parsed.author == name) {
+                  return true;
+                }
+                return false;
+              });
+              entries = entries.concat(authored);
+            });
+            this.personal = entries;
+          } else {
+            this.personal = [];
+          }
+        },
+
+        _loadJourneys: function() {
+          if (this.loadingJourneys == true) {
+            return;
+          }
+
+          this.loadingJourneys = true;
+
+          window.request("journeys.json", function(error, xhr) {
+            this.loadingJourneys = false;
+            if (error) {
+              console.error(JSON.stringify(error, null, 2));
+              return;
+            }
+            let journeys;
+            try {
+              journeys = JSON.parse(xhr.responseText);
+            } catch (___) {
+              console.error("Unable to parse journeys.json");
+              return;
+            }
+            function buildProjectTitle(project) {
+              function safeTitle(title) {
+                return title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              }
+
+              if (project.description) {
+                project.title = project.description;
+                return safeTitle(project.title);
+              }
+
+              if (Array.isArray(project.files)) {
+                for (var i = 0; i < project.files.length; i++) {
+                  if (project.files[i].name == "recipe") {
+                    let file = project.files[i];
+                    project.title = ('title' in file.parsed) ? file.parsed.title : file.name;
+                    return safeTitle(project.title);
+                  }
+                }
+              }
+
+              project.title = project.name;
+              return safeTitle(project.title);
+            }
+
+            journeys.forEach(function(journey) {
+              journey.files = journey.files.sort(function(a, b) {
+                a = new Date(a.commit.committed_date).getTime();
+                b = new Date(b.commit.committed_date).getTime();
+
+                return b - a;
+              });
+
+              /* Create back reference from entry to journey */
+              journey.files.forEach(function(entry) {
+                entry.journey = journey;
+              });
+            });
+
+            this.journeys = journeys.sort(function(a, b) {
+              if (a.files && a.files.length) {
+                a = a.files[0].commit.committed_date;
+              } else {
+                a = a.last_activity_at;
+              }
+              if (b.files && b.files.length) {
+                b = b.files[0].commit.committed_date;
+              } else {
+                b = b.last_activity_at;
+              }
+
+              a = new Date(a).getTime();
+              b = new Date(b).getTime();
+
+              return b - a;
+            });
+
+            this.journeys.forEach(function(journey) {
+              journey.title = buildProjectTitle(journey);
+            });
+          }.bind(this));
+        },
+
+        attached: function() {
+          this._loadJourneys();
+        }
+      });
+    });
+  </script>
+</dom-module>
+</html>

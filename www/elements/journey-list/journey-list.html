@@ -1,0 +1,136 @@
+<!doctype html>
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<html>
+<head>
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-timeago/iron-timeago.html">
+
+<link rel="import" href="../../elements/journey-info/journey-info.html">
+
+<script src="../../request.js"></script>
+
+</head>
+
+<dom-module id="journey-thumb">
+  <template>
+    <style is="custom-style" include="iron-flex iron-flex-alignment iron-positioning">
+    </style>
+    <div class="layout vertical">
+      <template is="dom-repeat" items="[[journeys]]" as="journey">
+        <journey-info authorization="[[authorization]]" config="[[config]]" journey="[[journey]]"></journey-info>
+      </template>
+    </div>
+  </template>
+  <script>
+  document.addEventListener("WebComponentsReady", function() {
+    "use strict";
+    Polymer({
+      is: "journey-thumb",
+      properties: {
+      }
+    });
+  });
+  </script>
+</dom-module>
+
+<dom-module id="journey-list">
+  <template>
+    <style is="custom-style" include="iron-flex iron-flex-alignment iron-positioning">
+    </style>
+    <div class="layout vertical">
+      <template is="dom-repeat" items="[[journeys]]" as="journey">
+        <journey-info authorization="[[authorization]]" config="[[config]]" journey="[[journey]]"></journey-info>
+      </template>
+    </div>
+  </template>
+
+  <script>
+    document.addEventListener("WebComponentsReady", function() {
+      "use strict";
+      Polymer({
+        is: "journey-list",
+        properties: {
+          journeys: Array,
+          authorized: {
+            type: Boolean,
+            value: false
+          },
+          config: {
+            type: Object
+          }
+        },
+
+        observers: [
+          "_authorizationChanged(authorization)"
+        ],
+
+        _authorizationChanged: function() {
+          this.authorized = this.authorization && this.authorization.username;
+        },
+
+        _loadJourneys: function() {
+          if (this.loadingJourneys == true) {
+            return;
+          }
+          this.loadingJourneys = true;
+
+          document.querySelector("dj-app").$.banner.getConfig().then(function(config) {
+            this.config = config;
+          }.bind(this));
+
+          window.request("journeys.json", function(error, xhr) {
+            this.loadingJourneys = false;
+            if (error) {
+              console.error(JSON.stringify(error, null, 2));
+              return;
+            }
+
+            let journeys;
+            try {
+              journeys = JSON.parse(xhr.responseText);
+            } catch (___) {
+              console.error("Unable to parse journeys.json");
+              return;
+            }
+
+            function buildProjectTitle(project) {
+              if (project.description) {
+                project.title = project.description;
+                return project.title;
+              }
+
+              if (Array.isArray(project.files)) {
+                for (var i = 0; i < project.files.length; i++) {
+                  if (project.files[i].name == "recipe") {
+                    let file = project.files[i];
+                    project.title = ('title' in file.parsed) ? file.parsed.title : file.name;
+                    return project.title;
+                  }
+                }
+              }
+
+              project.title = project.name;
+              return project.title;
+            }
+
+            this.journeys = journeys.sort(function(a, b) {
+              a = buildProjectTitle(a).toLowerCase();
+              b = buildProjectTitle(b).toLowerCase();
+              return a > b;
+            });
+          }.bind(this));
+        },
+
+        attached: function() {
+          this._loadJourneys();
+        }
+      });
+    });
+  </script>
+</dom-module>
+</html>

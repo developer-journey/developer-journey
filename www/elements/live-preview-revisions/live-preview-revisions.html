@@ -1,0 +1,286 @@
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+
+<link rel="import" href="../live-preview-moment/live-preview-moment.html">
+<link rel="import" href="../../elements/live-preview-confirm/live-preview-confirm.html">
+<link rel="import" href="../live-preview-styles/live-preview-styles.html">
+
+<script src="../../request.js"></script>
+
+<dom-module id="live-preview-revisions">
+  	<template>
+    <style is="custom-style" include="iron-flex iron-flex-alignment iron-positioning live-preview-styles">
+			:host {
+				position: fixed;
+				top: 3.0625rem;
+				right: 0.6rem;
+
+				z-index: 10;
+				background-color: #fff;
+				box-shadow: 5px 5px 10px #0000007c;
+        box-sizing: border-box;
+			}
+
+      :host([active]) {
+        border: 2px solid var(--gray);
+      }
+
+			:host,
+			:host ::slotted(*){
+				overflow: visible !important;
+			}
+
+			#revisions {
+        box-sizing: border-box;
+				width: 12.375rem;
+				height: 17.5rem;
+			}
+
+			#revisions::after,
+			#revisions::before {
+				content: '';
+				width: 0;
+  			height: 0;
+  			position: absolute;
+  			top: -9px;
+  			right: 1rem;
+			}
+
+			#revisions::after {
+				right: calc(1rem + 1px);
+  			border-left: 10px solid transparent;
+  			border-right: 10px solid transparent;
+  			border-bottom: 10px solid #fff;
+			}
+
+			#revisions::before {
+				top: -11.5px;
+  			border-left: 11px solid transparent;
+  			border-right: 11px solid transparent;
+  			border-bottom: 11px solid var(--gray);
+			}
+
+			.list-group {
+				height: 17.5rem;
+				margin: 0;
+				overflow-y: auto;
+			}
+
+			.list-group-item {
+        box-sizing: border-box;
+				border: none;
+				border-bottom: 2px solid var(--gray);
+				padding: .75rem;
+			}
+
+			.list-group-item:hover {
+				background-color: var(--gray-light);
+				cursor: pointer;
+			}
+
+			.list-group-item:hover .date,
+      .list-group-item:hover .message,
+			.list-group-item:hover .author {
+				color: #fff;
+			}
+
+      .list-group-item .date,
+      .list-group-item .message,
+			.list-group-item .author {
+        transition: all 400ms;
+        color: var(--gray);
+      }
+
+      .list-group-item .message {
+        font-size: 0.8rem;
+        line-height: 0.8rem;
+      }
+
+			.list-group-item .author {
+				font-size: .75rem;
+				line-height: .75rem;
+			}
+
+			.list-group-item .date {
+				font-size: .5rem;
+				font-style: italic;
+				color: var(--secondary);
+			}
+
+			.list-group-item .author,
+			.list-group-item .date {
+			}
+
+			pre {
+        font-family: ClearSans,Helvetica Neue,Helvetica,Arial,sans-serif;
+        text-align: left;
+        height: 18.75rem;
+        overflow-y: auto;
+        white-space: pre-line;
+        word-break: break-word;
+        padding: 1rem;
+        background-color: #eee;
+        border-radius: .3rem;
+        box-sizing: border-box;
+      }
+		</style>
+
+		<LivePreviewMomentJS></LivePreviewMomentJS>
+
+		<template is="dom-if" if="{{active}}">
+			<div id="revisions" class="flex layout vertical">
+        <div hidden$="[[loading]]">
+  				<template is="dom-repeat" items="[[history]]">
+  					<div data-commit$="[[item.id]]" class="list-group-item" on-click="previewRevision"
+                class="layout vertical">
+  						<div class="author">[[item.author_name]]</div>
+              <div class="message">[[item.message]]</div>
+  					</<div class="date">[[item.date]]</div>
+  					</div>
+  				</template>
+        </div>
+        <div class="flex layout horizontal center center-justified">
+          <paper-spinner hidden$="[[!loading]]" active="[[loading]]"></paper-spinner>
+        </div>
+			</div>
+    </template>
+
+
+	  <!--<live-preview-confirm id="RevisionsConfirm"></live-preview-confirm>-->
+	  <paper-dialog id="RevisionsConfirm" entry-animation="scale-up-animation" exit-animation="scale-down-animation">
+      <paper-button class="close-modal" on-click="reset">
+        <i class="fa fa-times"></i>
+      </paper-button>
+      <div class="dialog-header modal-title modal-title-center">
+        <h6>Revert To This Commit</h6>
+      </div>
+      <div class="modal-body dialog-body">
+        <pre>{{revision.commitData.content}}</pre>
+      </div>
+      <div class="buttons">
+        <paper-button class="btn btn-danger"  on-click="reset">Cancel</paper-button>
+        <paper-button class="btn btn-primary" on-click="revertAndEdit">Revert and Edit</paper-button>
+        <paper-button class="btn btn-success" on-click="revertAndSave">Revert and Save</paper-button>
+      </div>
+    </paper-dialog>
+	</template>
+
+	<script>
+	    class LivePreviewRevisions extends Polymer.Element {
+	    	constructor() {
+	    		super()
+	    		this.state = {
+	    			history: [],
+	    			active: false,
+	    			current: null,
+	    			revision: null
+	    		}
+	    	}
+
+        static get properties() {
+          return {
+            active: {
+              type: Boolean,
+              reflectToAttribute: true
+            }
+          }
+        }
+
+        isEmpty(item) {
+          if (!item || item == "") {
+            return true;
+          }
+
+          if (Array.isArray(item) && item.length == 0) {
+            return true;
+          }
+
+          if (Object.getOwnPropertyNames(item).length == 0) {
+            return true;
+          }
+
+          return false;
+        }
+
+	    	revisionState(){
+	    		if(this.active){
+	    			this.set('active', false);
+	    		} else {
+	    			this.set('active', true);
+	    			this.getRevisions();
+	    		}
+	    	}
+
+	    	closeRevisions(){
+	    		this.set('active', false);
+	    	}
+
+	    	getRevisions() {
+          this.loading = true;
+          window.request("api/v1/revisions/" + this.journey + "/" + this.article, function(error, xhr) {
+            this.loading = false;
+            if (error) {
+              console.error(error);
+              return;
+            }
+
+            var revisions;
+            try {
+              revisions = JSON.parse(xhr.responseText);
+            } catch (___) {
+              console.error("Error parsing revisions for " + this.journey + "/" + this.article);
+            }
+
+            this.set("history", revisions);
+          }.bind(this));
+	    	}
+
+	    	previewRevision(event) {
+	    		var self = this;
+	    		var commitId = event.currentTarget.getAttribute('data-commit');
+	    		self.history.forEach(function(key, index){
+	    			if(key.id === commitId){
+	    					self.set('current', window.simplemde.value());
+				        self.set('revision', key);
+				        self.set('active', false);
+	    					self.set('history', []);
+				        self.$.RevisionsConfirm.open();
+	    			}
+	    		});
+	    	}
+
+	    	revertAndEdit(){
+	    		window.simplemde.codemirror.setValue(this.revision.commitData.content);
+	    		this.reset();
+	    	}
+
+	    	revertAndSave(){
+	    		window.simplemde.codemirror.setValue(this.revision.commitData.content);
+	    		document.getElementById('djApp').$.LivePreviewCommit.setMessage('Reverting to #' + this.revision.id + ' created on '+ this.revision.date);
+	    		this.$.RevisionsConfirm.close();
+	    		document.getElementById('djApp').$.LivePreviewCommit.$.commitModal.open();
+
+	    	}
+
+	    	reset(){
+	    		this.$.RevisionsConfirm.close();
+	    		this.set('revision', null);
+	    		this.set('current', null);
+	    	}
+
+	    	componentState(){
+	    		return this.state;
+	    	}
+
+	    	static get is() {
+	    		return "live-preview-revisions";
+	    	}
+	    }
+	    customElements.define(LivePreviewRevisions.is, LivePreviewRevisions);
+  	</script>
+</dom-module>

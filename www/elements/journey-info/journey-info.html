@@ -1,0 +1,248 @@
+<!doctype html>
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<html>
+<head>
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-timeago/iron-timeago.html">
+
+<link rel="import" href="../../elements/clone-line/clone-line.html">
+
+<script src="../../request.js"></script>
+
+</head>
+
+<dom-module id="journey-info">
+  <template>
+    <style is="custom-style" include="iron-flex iron-flex-alignment iron-positioning">
+    :host {
+      display: block;
+      margin: 0.5em 1em;
+      border: 1px solid 444;
+      padding: 1em;
+      box-shadow: 0px 5px 5px -5px;
+      background-color: white;
+      overflow: hidden;
+    }
+    #block {
+      background-position: 0 0;
+      background-size: contain;
+      min-width: 128px;
+      min-height: 128px;
+      width: 128px;
+      height: 128px;
+    }
+
+    #recipes div {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #recipes > div a {
+      color: #00AEFF;
+      text-decoration: none;
+    }
+
+    #recipes > div a:hover {
+      text-decoration: underline;
+    }
+
+    #recipes .title {
+    }
+
+    #recipes .title:not([recipe]) {
+      padding-left: 1em;
+    }
+
+    #recipes > div:nth-child(even) {
+      background-color: azure;
+    }
+
+    #recipes > div:not(:last-child) {
+      border-bottom: 1px solid #ddd;
+    }
+
+    #journey-links a {
+      font-size: 0.7em;
+      line-height: 1.5em;
+      display: inline-block;
+      color: #00AEFF;
+      padding: 0 0.5em;
+      margin: 0.5em 0;
+      float: left;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    #journey-links a:hover {
+      text-decoration: underline;
+    }
+
+    #journey-links a:not(:last-of-type) {
+      border-right: 1px solid #ddd;
+    }
+
+    #journey-links a:not(:first-of-type) {
+    }
+
+    #recipes .buttons a {
+      font-size: 0.8em;
+      text-transform: uppercase;
+      padding: 0 0.5em;
+    }
+
+    #recipes  {
+      line-height: 1.5em;
+      font-size: 0.8em;
+    }
+
+    #journey-title {
+      margin-bottom: 0.5em;
+    }
+
+    </style>
+    <div class="layout vertical">
+      <div id="journey-title">[[journey.title]]</div>
+      <div class="layout horizontal justified">
+        <div id="block" class="journey journey-image" style$="background-image:url([[_getJourneyLogo(journey)]]);"></div>
+        <div id="recipes" class="layout vertical flex">
+          <div hidden$="[[!isEmpty(journey.files)]]">This journey does not have any entries yet.</div>
+          <template is="dom-repeat" items="[[journey.files]]" as="entry">
+            <div class="layout horizontal center">
+              <div class="title flex" recipe$="[[isRecipe(entry.path)]]"><a href="[[journey.path]]/[[entry.info.file_name]]">[[safeEntryTitle(entry)]]</a></div>
+              <div style="width: 100px;" class="buttons layout horizontal center">
+                <a href="[[journey.path]]/[[entry.info.file_name]]/edit">edit</a>
+                  &middot;
+                <!--a href$="[[config.GITLAB_URL]]/[[config.DJ_JOURNEY_GROUP]]/[[journey.path]]/blob/master/[[entry.info.file_name]]">git</a>
+                  &middot;-->
+                <a target="gitlab" href$="[[config.gitlabUrl]]/[[config.groupName]]/[[journey.path]]/commits/master/[[entry.info.file_name]]">history</a>
+              </div>
+              <div style="width: 200px;"><iron-timeago datetime="[[entry.commit.authored_date]]"></iron-timeago> by [[entry.commit.author_name]]</div>
+            </div>
+          </template>
+        </div>
+      </div>
+      <div id="journey-links" class="buttons">
+        <a href="[[journey.path]]/new" hidden$="[[!authorized]]">new entry</a>
+        <a href="[[journey.path]]/edit" hidden$="[[!authorized]]">edit meta data</a>
+        <a target="gitlab" href$="[[config.gitlabUrl]]/[[config.groupName]]/[[journey.path]]/">git</a>
+        <a target="gitlab" href$="[[config.gitlabUrl]]/[[config.groupName]]/[[journey.path]]/merge_requests">view merge requests</a>
+      </div>
+      <clone-line
+        host="[[config.gitlabHost]]"
+        path="[[config.gitlabPath]]"
+        base="/[[config.groupName]]/[[journey.path]]">
+      </clone-line>
+    </div>
+  </template>
+
+  <script>
+    document.addEventListener("WebComponentsReady", function() {
+      "use strict";
+      Polymer({
+        is: "journey-info",
+        properties: {
+          journey: {
+            type: Object
+          },
+          authorized: {
+            type: Boolean,
+            value: false
+          }
+        },
+        observers: [
+          "_authorizationChanged(authorization)",
+          "_journeyChanged(journey.*)"
+        ],
+
+        _authorizationChanged: function() {
+          this.authorized = this.authorization && this.authorization.username;
+        },
+
+        isRecipe: function(file) {
+          return file === "recipe";
+        },
+
+        isEmpty: function(object) {
+          if (!object) {
+            return true;
+          }
+          if (Array.isArray(object) && object.length == 0) {
+            return true;
+          }
+          if (typeof object === "object" && Object.getOwnPropertyNames(object).length == 0) {
+            return true;
+          }
+          return !object;
+        },
+        _sortJourneyEntries: function(files) {
+          if (!files) {
+            return;
+          }
+          files.sort(function (a, b) {
+            if (a.name == 'recipe') {
+              return -1;
+            }
+            if (b.name == 'recipe') {
+              return +1;
+            }
+            return a.parsed.title > b.parsed.title;
+          });
+        },
+
+        safeEntryTitle: function(entry) {
+          var title = ('title' in entry.parsed) ? entry.parsed.title : entry.name;
+          return title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        },
+
+        _getJourneyLogo: function(journey) {
+          if (journey.parsed && journey.parsed.cover) {
+            return 'content/' + journey.path + '/assets/' + journey.parsed.cover;
+          } else {
+            return 'assets/logo.png';
+          }
+        },
+
+        _journeyChanged: function() {
+          var journey = this.journey;
+
+          this._sortJourneyEntries(journey.files);
+          var  subs = '';
+          var image = new Image(), height;
+
+          if (journey.parsed && journey.parsed.cover) {
+            this.url = 'content/' + journey.path + '/recipe/assets/' + journey.parsed.cover;
+          } else {
+            this.url = 'assets/logo.png';
+          }
+
+          /* Instal an 'onload' handler to clamp the size to 128px if needed
+           * and ensure that the element is large enough to fit it. */
+          image.onload = function(parent) {
+            var el = parent.$.block, height;
+            el.style.backgroundImage = 'url(' + parent.url + ')';
+            /* If the image is taller than wide, clamp to 128px tall */
+            if (this.height > this.width) {
+              el.style.backgroundSize = '128px auto';
+              height = 128;
+            } else {
+              height = 128 * this.height / this.width;
+            }
+            parent.style.minHeight = 'calc(' + Math.round(height) + 'px + 1rem)';
+            Polymer.dom.flush();
+          }.bind(image, this);
+
+          image.src = this.url;
+        },
+        attached: function() {
+        }
+      });
+    });
+  </script>
+</dom-module>
+</html>

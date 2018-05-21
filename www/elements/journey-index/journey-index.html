@@ -1,0 +1,450 @@
+<!doctype html>
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<html>
+<head>
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/app-route/app-route.html">
+
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-timeago/iron-timeago.html">
+
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+
+<link rel="import" href="../../elements/journey-info/journey-info.html">
+
+<script src="../../request.js"></script>
+
+</head>
+
+<dom-module id="journey-index">
+  <template>
+    <style is="custom-style" include="iron-flex iron-flex-alignment iron-positioning">
+    #main-content {
+      padding: 0 1em;
+      margin: 0 auto;
+      max-width: 1024px;
+      min-width: calc(240px + 0.5em);
+      box-sizing: border-box;
+    }
+
+    #main-content p {
+      line-height: 1.5em;
+      font-size: 1.25em;
+    }
+
+    #main-content p:first-child {
+      margin-top: 0;
+    }
+
+    .buttons {
+      margin: 0.5em 0;
+    }
+
+    .buttons a {
+      text-decoration: none;
+    }
+
+    .buttons paper-button {
+      color: var(--paper-input-container-color, var(--secondary-text-color));
+      text-transform: capitalize;
+      font-weight: bold;
+      border-radius: 3px;
+      color: #00A68C; /* Pantone 16-5533 Arcadia */
+      background-color: white; /* Pantone 16-5533 Arcadia */
+      border: 1px solid #00A68C;
+      margin-left: 0;
+    }
+
+    .buttons paper-button:hover {
+      color: white;
+      background-color: #00A68C; /* Pantone 16-5533 Arcadia */
+    }
+
+    #thumbnail {
+      margin: 0.5em 0.5em 0.5em 0;
+      min-width: 240px;
+      max-width: 480px;
+      min-height: 240px;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      box-sizing: border-box;
+      overflow: hidden;
+      color: #444;
+      background-position: 50% 50%;
+      background-size: cover;
+      background-repeat: no-repeat;
+      color: white;
+      cursor: default;
+    }
+
+    /* Copy sizing styles from journey-thumb:host and journey-thumb */
+    .spacer {
+      min-width: 240px;
+      max-width: 480px;
+      box-sizing: border-box;
+      height: 0px;
+      margin: 0 0.5em 0.5em 0;
+    }
+
+    .thumb-box {
+      margin-right: -0.5em; /* Remove right-margin from journey-thumb */
+    }
+
+    #journey-info {
+      margin: 0.5em;
+    }
+
+    #journey-title {
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+
+    #journey-description {
+      font-size: 1em;
+    }
+
+    paper-icon-button {
+      --paper-icon-button: {
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        padding: 0px;
+        width: 1.5em;
+        height: 1.5em;
+        padding: 2px;
+        color: #ddd;
+      };
+    }
+
+    iron-timeago {
+      display: inline-block;
+    }
+
+    .entry-header-line {
+      font-weight: bold;
+      padding: 0.25em 0;
+      box-sizing: border-box;
+      cursor: pointer;
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      -moz-user-select: none;
+      user-select: none;
+    }
+
+    .entry-header-line > div {
+      cursor: pointer;
+    }
+
+    .entry-line {
+      padding: 0.25em 0;
+      box-sizing: border-box;
+    }
+
+    .entry-line a {
+      text-decoration: none;
+    }
+
+    .entry-line a:hover {
+      text-decoration: underline;
+    }
+
+    .entry-line:not(:last-of-type) {
+      border-bottom: 1px solid #ddd;
+    }
+
+    .entry-title {
+    }
+
+    .entry-actions {
+      font-size: 0.8em;
+      width: 100px;
+    }
+
+    .entry-ago {
+      font-size: 0.8em;
+      width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: default;
+    }
+    </style>
+
+    <app-route route="{{route}}"
+        pattern="/:article"
+        data="{{data}}"
+        tail="{{tail}}">
+    </app-route>
+
+    <div id="main-content" class="layout vertical">
+      <div class="layout vertical">
+        <div class="layout horizontal">
+          <div id="thumbnail"></div>
+          <div id="journey-info" class="layout vertical">
+            <div class="layout horizontal">
+              <div id="journey-title" class="flex">[[_journey.title]]</div>
+              <paper-icon-button hidden$="[[!authorized]]" icon="create"></paper-icon-button>
+            </div>
+            <!--div class="layout horizontal center">
+              <div id="journey-description" class="flex">[[_journey.description]]</div>
+              <paper-icon-button hidden$="[[!authorized]]" icon="create"></paper-icon-button>
+            </div-->
+            <div class="buttons">
+              <a href="[[_journey.path]]/new" hidden$="[[!authorized]]"><paper-button>create new entry</paper-button></a>
+              <a target="gitlab" href$="[[config.gitlabUrl]]/[[config.groupName]]/[[_journey.path]]/"><paper-button>view in GitLab</paper-button></a>
+              <a target="gitlab" href$="[[config.gitlabUrl]]/[[config.groupName]]/[[_journey.path]]/merge_requests"><paper-button>view merge requests</paper-button></a>
+            </div>
+            <clone-line
+              host="[[config.gitlabHost]]"
+              path="[[config.gitlabPath]]"
+              base="/[[config.groupName]]/[[_journey.path]]">
+            </clone-line>
+          </div>
+        </div>
+        <div class="layout vertical">
+          <div hidden$="[[!isEmpty(_journey.files)]]">This journey does not have any entries yet.</div>
+          <div hidden$="[[isEmpty(_journey.files)]]" class="entry-header-line layout horizontal center">
+            <div class="entry-title flex" on-tap="_sortTitle">Title</div>
+            <div class="entry-actions">&nbsp;</div>
+            <div class="entry-ago" on-tap="_sortModified">Last modified</div>
+          </div>
+          <template is="dom-repeat" items="[[_journey.files]]" as="entry">
+            <div class="entry-line layout horizontal center">
+              <div class="entry-title flex"><a href="[[_journey.path]]/[[entry.info.file_name]]">[[_safeEntryTitle(entry)]]</a></div>
+              <div class="entry-actions layout horizontal center">
+                <a target="gitlab" href$="[[config.gitlabUrl]]/[[config.groupName]]/[[_journey.path]]/commits/master/[[entry.info.file_name]]">history</a>
+              </div>
+              <div class="entry-ago"><iron-timeago datetime="[[entry.commit.authored_date]]"></iron-timeago></div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    document.addEventListener("WebComponentsReady", function() {
+      "use strict";
+      Polymer({
+        is: "journey-index",
+        properties: {
+          config: Object,
+          entries: {
+            type: Array,
+            value: []
+          },
+          authorized: {
+            type: Boolean,
+            value: false
+          },
+          filter: String,
+          filterName: String,
+          route: {
+            type: Object,
+            reflectToAttribute: true
+          },
+          journey: Object,
+          _journey: Object,
+          _sortField: {
+            type: String,
+            value: "modified"
+          },
+          _sortDesc: {
+            type: Boolean,
+            value: false
+          }
+        },
+
+        observers: [
+          "_authorizationChanged(authorization)",
+          "_journeyChanged(journey)"
+        ],
+
+        _sortModified: function() {
+          if (!this._journey) {
+            return;
+          }
+
+          if (this._sortField == "modified") {
+            this._sortDesc = !this._sortDesc;
+          } else {
+            this._sortDesc = true;
+          }
+          this._sortField = "modified";
+          this._sortEntries();
+        },
+
+        _sortTitle: function() {
+          if (!this._journey) {
+            return;
+          }
+
+          if (this._sortField == "title") {
+            this._sortDesc = !this._sortDesc;
+          } else {
+            this._sortDesc = true;
+          }
+          this._sortField = "title";
+          this._sortEntries();
+        },
+
+        _sortEntries: function() {
+          var entries = this._journey.files,
+            modifier = (this._sortDesc ? -1 : +1),
+            res;
+          this.set("_journey.files", []);
+
+          entries.sort(function(a, b) {
+            if (this._sortField == "title") {
+              a = this._safeEntryTitle(a);
+              b = this._safeEntryTitle(b);
+              res = a.localeCompare(b);
+            } else {
+              a = new Date(a.commit.committed_date).getTime();
+              b = new Date(b.commit.committed_date).getTime();
+
+              res = b - a;
+            }
+
+            return res * modifier;
+          }.bind(this));
+
+          this.set("_journey.files", entries);
+        },
+
+        _authorizationChanged: function() {
+          this.authorized = this.authorization && this.authorization.username;
+        },
+
+        _journeyChanged: function(journey) {
+          if (!journey) {
+            return;
+          }
+
+          this.loadingJourneys = true;
+          window.request("journeys.json", function(error, xhr) {
+            this.loadingJourneys = false;
+            if (error) {
+              console.error(JSON.stringify(error, null, 2));
+              return;
+            }
+
+            let journeys;
+            try {
+              journeys = JSON.parse(xhr.responseText);
+            } catch (___) {
+              console.error("Unable to parse journeys.json");
+              return;
+            }
+
+            var match = null;
+            for (var i = 0; !match && i < journeys.length; i++) {
+              if (journeys[i].name == journey) {
+                match = journeys[i];
+              }
+            }
+
+            if (!match) {
+              console.warn("404 on requested journey: " + journey);
+              return;
+            }
+
+            function buildProjectTitle(project) {
+              function safeTitle(title) {
+                return title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              }
+
+              if (project.description) {
+                project.title = project.description;
+                return safeTitle(project.title);
+              }
+
+              if (Array.isArray(project.files)) {
+                for (var i = 0; i < project.files.length; i++) {
+                  if (project.files[i].name == "recipe") {
+                    let file = project.files[i];
+                    project.title = ('title' in file.parsed) ? file.parsed.title : file.name;
+                    return safeTitle(project.title);
+                  }
+                }
+              }
+
+              project.title = project.name;
+              return safeTitle(project.title);
+            }
+
+            match.files = match.files.sort(function(a, b) {
+              a = new Date(a.commit.committed_date).getTime();
+              b = new Date(b.commit.committed_date).getTime();
+
+              return b - a;
+            });
+
+            /* Create back reference from entry to journey */
+            match.files.forEach(function(entry) {
+              entry.journey = journey;
+            });
+
+            match.title = buildProjectTitle(match);
+
+
+            var thumb = "assets/logo.png";
+
+            if (match.parsed && match.parsed.cover) {
+              thumb = 'api/v1/git/' + match.path + '/assets/' + match.parsed.cover;
+            } else {
+              thumb = 'api/v1/git/' + match.path + "/assets/cover.png";
+            }
+
+            this.$.thumbnail.style.backgroundImage = "url(" + thumb + ")";
+
+            this._journey = match;
+          }.bind(this));
+        },
+
+        _safeEntryTitle: function(entry) {
+          if (!entry) {
+            console.warn("_safeEntryTitle called with null");
+            return "Unknown";
+          }
+          var title = (entry.parsed && ('title' in entry.parsed)) ? entry.parsed.title : entry.name;
+            return title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        },
+
+        isEmpty: function(object) {
+          if (!object) {
+            return true;
+          }
+          if (Array.isArray(object) && object.length == 0) {
+            return true;
+          }
+          if (typeof object === "object" && Object.getOwnPropertyNames(object).length == 0) {
+            return true;
+          }
+          return !object;
+        },
+
+        getConfig: function() {
+          var app = document.querySelector("dj-app");
+          if (!app.$) {
+            setTimeout(this.getConfig.bind(this), 100);
+            return;
+          }
+
+          app.$.banner.getConfig().then(function(config) {
+            this.config = config;
+          }.bind(this));
+        },
+
+        attached: function() {
+          this.getConfig();
+        }
+      });
+    });
+  </script>
+</dom-module>
+</html>

@@ -1,0 +1,9 @@
+journeys/
+journeys.json
+node-dj.json
+npm-debug.log
+sessions/
+www/bower_components/
+node_modules/
+npm-debug*
+trigger-restart

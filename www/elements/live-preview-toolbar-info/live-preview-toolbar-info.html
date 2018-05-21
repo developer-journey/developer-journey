@@ -1,0 +1,408 @@
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../live-preview-styles/live-preview-styles.html">
+
+<dom-module id="live-preview-toolbar-info">
+  <link rel="import" type="css" href="../../bower_components/font-awesome/css/font-awesome.min.css" />
+  <template>
+  	<style type="text/css" include="live-preview-styles">
+        :root{
+          --info-height-sm: 8.375rem;
+        }
+        :host{
+          height: 0;
+          position: relative;
+          box-sizing: border-box;
+          transition: all 400ms;
+          border-left: 1px solid #d0d0d0;
+          background-color: var(--secondary-light);
+          box-shadow: 0 0 10px #0000007c;
+          overflow: hidden;
+          opacity: 0;
+          z-index: 4;
+        }
+
+        :host *{
+          box-sizing: border-box;
+        }
+
+        :host(.active){
+          height: 8.375rem;
+          opacity: 1;
+        } 
+
+        :host::after{
+          content: '';
+          height: 100%;
+          display: block;
+          clear: both;
+        }
+
+        .fa{
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          color: #fff;
+          z-index: 2;
+          transition: all 200ms;
+        } 
+
+        .fa-arrow-right{
+          display: none;
+        } 
+
+        .fa-arrow-right:hover{
+          cursor: pointer;
+          transform: translateX(2.5px);
+        } 
+
+        .fa-arrow-up:hover{
+          cursor: pointer;
+          transform: translateY(-2.5px);
+        }
+
+        :host .block{
+          width: calc(100% / 3);
+          float: left;
+          height: 8.375rem;
+          padding: 1rem;
+          overflow-y: auto;
+        }
+
+        :host .block h6, 
+        :host .block p,
+        :host .block a{
+          font-size: .75rem;
+          color: #fff;
+          letter-spacing: 1px;
+        }
+
+        :host .block a:hover,
+        :host .block a:active,
+        :host .block a.active{
+          cursor: pointer;
+          border-bottom: 1px solid #fff;
+        }
+
+        :host #types{
+          background-color: var(--secondary);
+          border-left: 1px solid #fff;
+          opacity: 0;
+          transition: all 400ms;
+        }
+
+        :host #definition{
+          background-color: var(--secondary-dark);
+          border-left: 1px solid #fff;
+          opacity: 0;
+          transition: all 400ms;
+        }
+
+        :host #types.active,
+        :host #definition.active{
+          opacity: 1;
+        }
+
+        @media (min-width: 75rem){
+          :host{
+            width: 20rem;
+            height: calc(100vh - 6.4rem);
+            position: fixed;
+            top: 6.4rem;
+            right: -20rem;
+          }
+
+          :host(.active){
+            height: calc(100vh - 6.4rem);
+            right: 0;
+          }
+
+          :host .fa-arrow-up{
+            display: none;
+          }
+
+          :host .fa-arrow-right{
+            display: block;
+          }
+
+          :host .block{
+            width: 100%;
+            height: auto;
+          }
+
+          :host #types{
+            border: none;
+            border-top: 1px solid #fff;
+          }
+
+          :host #definition{
+            border: none;
+            border-top: 1px solid #fff;
+          }
+        }
+
+  	</style>
+      <div id="toolbar-info" class$="{{active}}">
+        <i class="fa fa-arrow-up" on-click="closeToolbar"></i>
+        <i class="fa fa-arrow-right" on-click="closeToolbar"></i>
+        <div id="elements" class="block">
+          <template is="dom-repeat" items="{{elements}}">
+            <div id$="{{item.id}}">
+              <a data-id$="{{item.id}}" class$="{{item.active}}" on-click="types">{{item.name}}</a>
+            </div>
+          </template>
+        </div>
+
+        <div id="types" class="block">
+          <template is="dom-repeat" items="{{state.type}}">
+            <div id$="{{item.id}}">
+              <a data-id$="{{item.id}}" class$="{{item.active}}" on-click="definition">{{item.name}}</a>
+            </div>
+          </template>
+        </div>
+
+        <div id="definition" class="block">
+          <div id$="definition-{{state.definition.id}}">
+            <h6>{{state.definition.name}}</h6>
+            <p>{{state.definition.body}}</p>
+          </div>
+        </div>
+  </template>
+
+  <script>
+    class LivePreviewToolbarInfo extends Polymer.Element {
+    	constructor(){
+    		super()
+        var self = this;
+        this.state = {
+          type: [],
+          definition: null
+        }
+
+        window.addEventListener('resize', function(){
+          self.setHeight();
+        });
+      }
+
+      static get properties() {
+        return {
+          elements: {
+            type: String,
+            value: [
+              {
+                id: 'block-elements',
+                active: '',
+                name: 'Block Elements',
+                types: [
+                  {
+                    id: 'headers',
+                    active: '',
+                    name: 'Headers',
+                    definition: {
+                      id: 'headers',
+                      name: 'Headers',
+                      body: 'Markdown supports two header formats. The wiki editor uses the “atx’-style headers. Simply prefix your header text with the number of # characters to specify heading depth. For example: # Header 1, ## Header 2 and ### Header 3 will be progressively smaller headers. You may end your headers with any number of hashes.'
+                    }
+                  },
+                  {
+                    id: 'paragraphs-breaks',
+                    active: '',
+                    name: 'Paragraphs & Breaks',
+                    definition: {
+                      id: 'paragraphs-breaks',
+                      name: 'Paragraphs & Breaks',
+                      body: 'To create a paragraph, simply create a block of text that is not separated by one or more blank lines. Blocks of text separated by one or more blank lines will be parsed as paragraphs.<br />If you want to create a line break, end a line with two or more spaces, then hit Return/Enter.'
+                    }
+                  },
+                  {
+                    id: 'blockquotes',
+                    active: '',
+                    name: 'Blockquotes',
+                    definition: {
+                      id: 'blockquotes',
+                      name: 'Blockquotes',
+                      body: 'Markdown creates blockquotes email-style by prefixing each line with the >. This looks best if you decide to hard-wrap text and prefix each line with a > character, but Markdown supports just putting > before your paragraph.'
+                    }
+                  },
+                  {
+                    id: 'lists',
+                    active: '',
+                    name: 'Lists',
+                    definition: {
+                      id: 'lists',
+                      name: 'Lists',
+                      body: 'Markdown supports both ordered and unordered lists. To create an ordered list, simply prefix each line with a number (any number will do — this is why the editor only uses one number.) To create an unordered list, you can prefix each line with *, + or -. <br/> List items can contain multiple paragraphs, however each paragraph must be indented by at least 4 spaces or a tab.'
+                    }
+                  },
+                  {
+                    id: 'code-blocks',
+                    active: '',
+                    name: 'Code Blocks',
+                    definition: {
+                      id: 'code-blocks',
+                      name: 'Code Blocks',
+                      body: 'Markdown wraps code blocks in pre-formatted tags to preserve indentation in your code blocks. To create a code block, indent the entire block by at least 4 spaces or one tab. Markdown will strip the extra indentation you’ve added to the code block.'
+                    }
+                  },
+                  {
+                    id: 'horizontal-rules',
+                    active: '',
+                    name: 'Horizontal Rules',
+                    definition: {
+                      id: 'horizontal-rules',
+                      name: 'Horizontal Rules',
+                      body: 'Horizontal rules are created by placing three or more hyphens, asterisks or underscores on a line by themselves. Spaces are allowed between the hyphens, asterisks or underscores.'
+                    }
+                  }
+                ]
+              },
+              {
+                id: 'span-elements',
+                active: '',
+                name: 'Span Elements',
+                types: [
+                  {
+                    id: 'links',
+                    active: '',
+                    name: 'Links',
+                    definition: {
+                      id: 'links',
+                      name: 'Links',
+                      body: 'Markdown has two types of links: inline and reference. For both types of links, the text you want to display to the user is placed in square brackets. For example, if you want your link to display the text “GitHub”, you write [GitHub]. <br/>To create an inline link, create a set of parentheses immediately after the brackets and write your URL within the parentheses. (e.g., [GitHub](https://github.com/)). Relative paths are allowed in inline links.<br/>To create a reference link, use two sets of square brackets. [[my internal link|internal-ref]] will link to the internal reference internal-ref.'
+                    }
+                  },
+                  {
+                    id: 'emphasis',
+                    active: '',
+                    name: 'Emphasis',
+                    definition: {
+                      id: 'emphasis',
+                      name: 'Emphasis',
+                      body: 'Asterisks (*) and underscores (_) are treated as emphasis and are wrapped with an <em> tag, which usually displays as italics in most browsers. Double asterisks (**) or double underscores (__) are treated as bold using the <strong> tag. To create italic or bold text, simply wrap your words in single/double asterisks/underscores. For example, **My double emphasis text** becomes My double emphasis text, and *My single emphasis text* becomes My single emphasis text.'
+                    }
+                  },
+                  {
+                    id: 'code',
+                    active: '',
+                    name: 'Code',
+                    definition: {
+                      id: 'code',
+                      name: 'Code',
+                      body: 'To create inline spans of code, simply wrap the code in backticks (`). Markdown will turn `myFunction` into myFunction.'
+                    }
+                  },
+                  {
+                    id: 'images',
+                    active: '',
+                    name: 'Images',
+                    definition: {
+                      id: 'images',
+                      name: 'Images',
+                      body: 'Markdown image syntax looks a lot like the syntax for links; it is essentially the same syntax preceded by an exclamation point (!). For example, if you want to link to an image at https://github.com/unicorn.png with the alternate text My Unicorn, you would write ![My Unicorn](https://github.com/unicorn.png).'
+                    }
+                  }
+                ]
+              },
+              {
+                id: 'miscellaneous',
+                active: '',
+                name: 'Miscellaneous',
+                types: [
+                  {
+                    id: 'automatic-links',
+                    active: '',
+                    name: 'Automatic Links',
+                    definition: {
+                      id: 'automatic-links',
+                      name: 'Automatic Links',
+                      body: 'If you want to create a link that displays the actual URL, markdown allows you to quickly wrap the URL in < and > to do so. For example, the link https://github.com/ is easily produced by writing <https://github.com/>.'
+                    }
+                  },
+                  {
+                    id: 'escaping',
+                    active: '',
+                    name: 'Escaping',
+                    definition: {
+                      id: 'escaping',
+                      name: 'Escaping',
+                      body: 'If you want to use a special Markdown character in your document (such as displaying literal asterisks), you can escape the character with the backslash (\).'
+                    }
+                  }
+                ]
+              }
+
+            ]
+          }
+        }
+      }
+
+      toolbarState(){
+        this.className.indexOf('active') > -1 ? this.classList.remove('active') : this.classList.add('active');
+      }
+
+      resetToolbar(){
+        var self = this;
+        self.state.type.forEach(function(key, index){
+          self.set('state.type.'+ index +'.active', '');
+        });
+        self.set('state.type', []);
+        self.set('state.definition', null);
+        self.$.types.classList.remove('active');
+        self.$.definition.classList.remove('active');
+      }
+
+      closeToolbar(){
+        this.classList.remove('active');
+        this.resetToolbar();
+      }
+
+      types(event){
+        var self = this;
+        var id = event.currentTarget.getAttribute('data-id');
+        this.resetToolbar();
+        self.elements.forEach(function(key, index){
+          self.set('elements.'+ index +'.active', '');
+          if(key.id === id){
+            self.set('elements.'+ index +'.active', 'active');
+            self.set('state.type', key.types);
+            self.$.types.classList.add('active');
+          }
+        });
+      }
+
+      definition(event){
+        var self = this;
+        var definition = self.$.definition;
+
+        var id = event.currentTarget.getAttribute('data-id');
+        self.state.type.forEach(function(key, index){
+          self.set('state.type.'+ index +'.active', '');
+          if(key.id === id){
+            self.set('state.type.'+ index +'.active', 'active');
+            self.set('state.definition', key.definition);
+            self.setHeight();
+            definition.classList.add('active');
+          }
+        });
+      }
+
+      setHeight(){
+        var contianerHeight = this.getBoundingClientRect().height; 
+        var elementsHeight = this.$.elements.getBoundingClientRect().height;
+        var typesHeight = this.$.elements.getBoundingClientRect().height;
+        var definition = this.$.definition;
+        var max = contianerHeight - (elementsHeight + typesHeight);
+        window.innerWidth > 1200 ? definition.style.maxHeight = (max + 15) + 'px' : 'none';
+      }
+
+    	static get is() { 
+    		return "live-preview-toolbar-info"; 
+    	}
+    }
+    customElements.define(LivePreviewToolbarInfo.is, LivePreviewToolbarInfo);
+  </script>
+
+</dom-module>

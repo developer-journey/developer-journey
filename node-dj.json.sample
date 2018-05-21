@@ -1,0 +1,112 @@
+# Sample Developer Journey configuration file
+#
+# Copy this file to 'node-dj.json' and edit based on your configuration.
+#
+# NOTE: This file has comments stripped via server/remove-comments.js
+#
+{
+  # The local port for the Developer Journey NodeJS process to bind to.
+  "localPort": 8911,
+
+  # The GitLab server host (protocol, name, and port)
+  #
+  # DO NOT include the pathname as part of this parameter
+  #
+  # This path will be used by the front-end to redirect users to the
+  # GitLab project hosting a journey. It does so by ssh:// URLs
+  # for referencing the GitLab instance by replacing https?:// with git@
+  # "gitlabHost": "https://example",
+
+  # GitLab relative path on the gitlabServer, if needed.
+  #
+  # DEPLOYING.md sets this to "/gitlab"
+  # "gitlabPath": "/gitlab",
+
+  # The host URL for the Developer Journey (no path)
+  #
+  # NOTE: If you are **not** running behind nginx, this
+  # path must use http:// and should include the port
+  # set in localPort.
+  #
+  # If you will be running behind nginx (as DEPLOYING.md instructs)
+  # then use https:// and DO NOT provide the port.
+  # "hostUrl": "https://localhost",
+
+  # The base path for connecting to the Developer Journey
+  # page.
+  #
+  # The system will be addressable via:
+  #   [[hostUrl]]/[[basePath]]
+  #
+  # For example:
+  # "hostUrl": "https://localhost",
+  # "basePath": "/developerjourney"
+  #
+  # Becomes:
+  #   https://localhost/developerjourney/authenticate
+  #
+  # If you are unable to authenitcate with GitLab from the
+  # Developer Journey front-end due to an invalid redirect URL chances
+  # are that the hostUrl is invalid.
+  #
+
+  # GROUP name which will contain the upstream Developer Journey projects
+  #
+  # This is used as the publishing project. This is the group
+  # that is directly managed by the Developer Journey infrastructure.
+  #
+  # DEFAULT: journeys
+  # "groupName": "journeys",
+
+  # Projects to ignore in the above named group; this allows the
+  # main group/organization to host other projects, including the
+  # Developer Journey project itself.
+  "ignoreProjects": [ "developerjourney" ],
+
+  # Group user is a user with MASTER access to the above group.
+  #
+  # It is used for creating new Developer Journey projects as well as
+  # installing web hooks into those projects.
+  # NOTE: The username is only captured here for documentation
+  # purposes; it isn't used by the infrastructure.
+  # "groupUser": "ma-journeys-master",
+  # "groupPrivateToken": "eBtwVqUmZFTpyxUZ7mnu",
+
+  # Anonymous user account
+  #
+  # Create a user account in GitLab, and grant it only READ
+  # ONLY access. Then go into the Profile settings and copy the
+  # private token here.
+  #
+  # Anonymous user requests will be sent using this account's
+  # credentials
+  #
+  # NOTE: The anonymous username is only used for logging purposes when
+  # outputting errors while connecting to GitLab.
+  # "anonymousUser": "ma-journeys-anon",
+  # "anonymousPrivateToken": "wL_six_SsUxYEPJZGF6b",
+
+  # OAUTH2 application id and secret key, as created by GitLab
+  # Configured via: https://[[gitlabHost]][[gitlabPath]]/profile/applications
+  #
+  # When you register the Developer Journey application with
+  # your GitLab server, the Redirect URI should be constructed
+  # as [[hostUrl]]/[[basePath]]/authenticate
+  #
+  # For example: http://localhost:8911/developerjourney/authenticate
+  #
+  # "applicationId": "3dcacf287bd6ce98cdc3e4b9c92c71a4944051ea67a89c5d4ef4b032270d75d1",
+  # "secret": "f7959cf0b256eb64ea131c78b215c8b2a64608e957d85a51c8488f6b37eb7bb7",
+
+  # docRoot is the path on the local filesystem where the web assets are stored
+  #
+  # Default: ./www
+  # "docRoot": "./www"
+
+  # sessionDir is the path to store session files for connected users. It can be relative
+  # to the directory the server is launched from, or an absolute path.
+  # 
+  # NOTE: Do not place this directory under the 'docRoot' or you will make the
+  # private session data available to the http requests.
+  "sessionDir": "sessions"
+}

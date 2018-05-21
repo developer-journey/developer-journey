@@ -1,0 +1,765 @@
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/neon-animation/web-animations.html">
+<link rel="import" href="../../bower_components/neon-animation/neon-animations.html">
+<link rel="import" href="../../elements/live-preview-confirm/live-preview-confirm.html">
+<link rel="import" href="../live-preview-styles/live-preview-styles.html">
+
+<dom-module id="live-preview-upload">
+	<link rel="import" type="css" href="../../bower_components/font-awesome/css/font-awesome.min.css" />
+  	<template>
+  		<style type="text/css" include="live-preview-styles">
+		:host{
+			width: 100%;
+			height: 20rem;
+			position: fixed;
+			left: 0;
+			bottom: -100%;
+			display: block;
+			z-index: 2;
+			box-sizing: border-box;
+			background-color: var(--gray);
+			border-top: 1px solid var(--gray-light);
+	    box-shadow: none;
+	    transition: all 350ms;
+		}
+
+		:host(.active) #gallery,
+		:host(.active) #gallery .item{
+			opacity: 1;
+		}
+
+		:host(.active){
+			bottom: 0;
+		}
+
+		:host::after{
+			content: none !important;
+		}
+
+		:host *{
+			box-sizing: border-box;
+		}
+
+		:host #imageUploadModal::after{
+			content: '';
+			height: 100%;
+			display: block;
+			clear: both;
+		}
+
+		#gallery{
+			height: 20rem;
+			padding: 0 1rem 1rem 1rem;
+			overflow: auto;
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: flex-start;
+		  opacity: 0;
+		  transition: opacity 600ms 600ms;
+		}
+
+		#gallery .item {
+			width: 100%;
+			margin-bottom: 1rem;
+			position: relative;
+		    display: flex;
+		    justify-content: flex-start;
+		    flex-direction: column;
+		    transition: opacity 600ms 600ms;
+		}
+
+		@media (min-width: 30rem){
+			#gallery{
+		        margin: 0;
+		        padding: 0 0 0 1rem;
+			}
+
+			#gallery .item{
+				width: calc(50% - 1rem);
+				margin-right: 1rem;
+			}
+		}
+
+		@media (min-width: 37.5rem){
+			#gallery{
+				width: calc(100% - 12.5rem);
+				float: right;
+				padding: 1rem 0 1rem 0;
+			}
+
+			#gallery .item{
+				width: calc(50% - 1rem);
+			}
+
+			#upload-image{
+				float: left;
+			}
+		}
+
+		@media (min-width: 48rem){
+			#gallery .item{
+				width: calc(100% / 3 - 1rem);
+			}
+		}
+
+		@media (min-width: 60rem){
+			#gallery .item{
+				width: calc(100% / 4 - 1rem);
+			}
+		}
+
+		@media (min-width: 75rem){
+			#gallery .item{
+				width: calc(100% / 5 - 1rem);
+			}
+		}
+
+		@media (min-width: 75rem){
+			#gallery .item{
+				width: calc(100% / 7 - 1rem);
+			}
+		}
+
+		@media (min-width: 125rem){
+			#gallery .item{
+				width: calc(100% / 9 - 1rem);
+			}
+		}
+
+		#imageUploadModal #gallery .item .item-image-container{
+			width: 100%;
+			min-height: 10rem;
+			padding-bottom: 75%;
+			display: flex;
+		    justify-content: space-between;
+		    flex-direction: row;
+			background-size: cover;
+			background-position: center center;
+			background-repeat: no-repeat;
+			box-shadow: 1px 1px 3px rgba(0,0,0,.5);
+			border-radius:4px;
+		}
+		#imageUploadModal #gallery .item .item-filename{
+			width: 100%;
+			height: 1.55rem;
+			padding: .5rem .25rem 0 .25rem;
+			font-size: .75rem;
+			color: #fff;
+			text-align: center;
+			letter-spacing: 1.3px;
+		}
+
+
+		#imageUploadModal #gallery .item .add-image,
+		#imageUploadModal #gallery .item .remove-image {
+		    width: 50%;
+		    height: calc(100% - 1.55rem);
+		    position: absolute;
+		    top: 0;
+		    display: flex;
+		    justify-content: center;
+		    align-items: center;
+		    flex-direction: column;
+		    opacity: 0;
+		    transition: all 400ms;
+		}
+
+		#imageUploadModal #gallery .item .add-image span,
+		#imageUploadModal #gallery .item .remove-image span{
+			font-size: .75rem;
+			color: #fff;
+			text-transform: uppercase;
+		}
+
+		#imageUploadModal #gallery .item .add-image {
+		    background-color: rgba(9,148,171,0.6);
+		}
+
+		#imageUploadModal #gallery .item .remove-image {
+			left: 50%;
+		    background-color: rgba(221, 44, 0, 0.5);
+		}
+
+		#imageUploadModal #gallery .item .add-image:hover,
+		#imageUploadModal #gallery .item .remove-image:hover {
+		    opacity: 1;
+		    cursor: pointer;
+		}
+
+		#imageUploadModal #gallery .item .add-image .fa,
+		#imageUploadModal #gallery .item .remove-image .fa {
+		    color: #fff;
+		    font-size: 2rem;
+		}
+
+		#imageUploadModal #upload-image {
+		    height: 8.4375rem;
+		    margin: 0;
+		    position: relative;
+		    display: flex;
+		    flex-direction: column;
+		    align-items: center;
+		    justify-content: center;
+		    border: 1rem solid var(--gray);
+		    transition: all 200ms;
+		}
+
+		#imageUploadModal #upload-image:hover {
+		    cursor: pointer;
+		    background-color: var(--gray-light);
+		    border-color: var(--gray);
+		}
+
+		#imageUploadModal #upload-image:hover span,
+		#imageUploadModal #upload-image:hover .fa {
+		    color: #fff;
+		}
+
+		#imageUploadModal #upload-image:hover input {
+		    cursor: pointer;
+		}
+
+		#imageUploadModal #upload-image::before {
+		    content: '';
+		    width: calc(100% - 3px);
+		    height: calc(100% - 3px);
+		    position: absolute;
+		    top: 0;
+		    left: 0;
+		    border: 1px dotted var(--gray-light);
+		    z-index: 2;
+		}
+
+		#imageUploadModal #upload-image:hover::before {
+		    border-color: var(--secondary-dark);
+		}
+
+		#imageUploadModal #upload-image input {
+		    width: 100%;
+		    height: 100%;
+		    position: absolute;
+		    top: 0;
+		    left: 0;
+		    opacity: 0;
+		    z-index: 3;
+		}
+
+		#imageUploadModal #upload-image i,
+		#imageUploadModal #upload-image span {
+		    font-size: 1.2rem;
+		    line-height: 2.25rem;
+		    color: #656565;
+		    font-weight: normal;
+		}
+
+		#imageUploadModal #upload-image i {
+		    font-size: 2rem;
+		}
+
+		@media (min-width: 37.5rem) {
+		    #imageUploadModal {
+		    	flex-direction: row-reverse;
+		        padding: 0;
+		    }
+
+		    #imageUploadModal .gallery #galleryBottom {
+		        width: 100%;
+		        height: .5rem;
+		    }
+
+		    #imageUploadModal #upload-image {
+		        width: 12.5rem;
+		        height: 20rem;
+		        flex-wrap: wrap;
+		        text-align: center;
+		    }
+
+		    #imageUploadModal #upload-image span {
+		        width: 100%;
+		    }
+
+		    .gallery::after,
+		    #imageUploadModal #upload-image::after {
+		        content: "";
+		        display: block;
+		        height: 100%;
+		        clear: both;
+		    }
+		}
+
+		#imageUploadModal #prevent-scroll {
+		    width: 100%;
+		    height: 100%;
+		    position: absolute;
+		    top: 0;
+		    left: 0;
+		    background-color: rgba(255, 255, 255, 0.3);
+		}
+
+		#confirmModal {
+		    text-align: center;
+		}
+
+		#confirmModal p {
+		    margin-top: 0;
+		}
+
+		#confirmModal .buttons {
+		    display: flex;
+		    justify-content: space-between;
+		    padding: 0;
+		}
+
+		#confirmModal .buttons .btn {
+		    width: calc(100% - 1rem);
+		}
+
+		#confirmModal .buttons .btn-danger {
+		    margin-left: 0;
+		}
+
+		#confirmModal .buttons .btn-success {
+		    margin-right: 0;
+		}
+
+		#renameModal{
+			max-width: 35rem;
+		}
+
+		#renameModal .modal-body{
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		#renameModal #imagePreviewContainer{
+			width: 12.5rem;
+			height: 12.5rem;
+			position: relative;
+			overflow: hidden;
+		}
+
+		#renameModal img{
+			width: 100%;
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			box-shadow: 0px 2px 4px rgba(0,0,0,.5);
+		}
+
+		#renameModal #newNameField{
+			width: calc(100% - 13.5rem);
+			border-color: 1px solid var(--gray-dark);
+		}
+
+		#renameModal #newNameField:focus,
+		#renameModal #newNameField:active,
+		#renameModal #newNameField:hover{
+			box-shadow: none;
+			outline: none;
+			border-color: 1px solid var(--gray-dark);
+		}
+
+  		</style>
+  		<div id="imageUploadModal" class$="{{state.active}}">
+  			<div id="upload-image">
+	    		<i class="fa fa-upload"></i>
+    			<span>Drag to Upload</span>
+    			<input type="file" id="imageUploadButton" on-drop="onUpload" on-change="onUpload" accept=".jpg,.jpeg,.png,.gif" multiple>
+	    	</div>
+  			<div id="gallery" class="gallery">
+					<template is="dom-repeat" items="{{state.images}}">
+			   		<div class="item">
+			   			<div data-src$="[[item.path]]" class="add-image" on-click="setImage" data-alt$="[[item.name]]">
+			   				<i class="fa fa-plus"></i>
+			   				<span>Insert</span>
+			   			</div>
+			   			<div data-src$="[[item.path]]" data-alt$="[[item.name]]" class="remove-image" on-click="deleteImage">
+			   				<i class="fa fa-remove"></i>
+			   				<span>Delete</span>
+			   			</div>
+			   			<div class="item-image-container" style="background-image: url(api/v1/content/[[journey]]/assets/[[item.path]]);">
+				   		</div>
+				   		<div class="item-filename">
+							{{item.sub}}
+				   		</div>
+			   		</div>
+			   	</template>
+			   	<div id="galleryBottom"></div>
+				</div>
+	    	<template is="dom-if" if="{{state.loadMore}}">
+	    		<div id="prevent-scroll"></div>
+	    	</template>
+  		</div>
+		<live-preview-confirm id="UploadConfirm" class="remove-image"></live-preview-confirm>
+		<paper-dialog id="renameModal" entry-animation="scale-up-animation" exit-animation="scale-down-animation" no-cancel-on-esc-key="true" no-cancel-on-outside-click="true">
+      <div class="dialog-header modal-title modal-title-center">
+        <h6>Rename Image</h6>
+      </div>
+      <div class="modal-body dialog-body">
+      	<div id="imagePreviewContainer">
+	      	<template is="dom-if" if="{{state.naming.imgData}}">
+		      	<img src$="data:{{state.naming.type}};base64,{{state.naming.imgData}}">
+		      </template>
+		    </div>
+	      <input id="newNameField" class="form-control" type="text" placeholder="Image Name" value="{{name::input}}" autofocus>
+	    </div>
+      <div class="buttons">
+      	<paper-button class="btn btn-danger" on-click="cancelUpload">Cancel Upload</paper-button>
+      	<template is="dom-if" if="{{state.canSkip}}">
+      		<paper-button class="btn btn-success" on-click="skipImage">Skip Image</paper-button>
+      	</template>
+        <paper-button class="btn btn-success" on-click="nextImage">{{state.buttonLabel}}</paper-button>
+      </div>
+    </paper-dialog>
+	</template>
+
+	<script>
+	    class LivePreviewUpload extends Polymer.Element {
+	    	constructor() {
+	    		super()
+
+	    		this.state = {
+	    			project: {
+	    				host: null,
+	    				group: null
+	    			},
+	    			buttonLabel: 'Next',
+	    			currentIndex: 0,
+	    			inQueue: null,
+	    			naming: null,
+	    			renamed: null,
+	    			images: [],
+	    			dropImage: false,
+	    			canSkip: false
+	    		}
+
+	    		var self = this;
+	    		document.addEventListener('keyup', function(event){
+						if(event.keyCode === 13 && self.state.active && self.state.naming && self.name != ''){
+							self.nextImage();
+						}
+					});
+	    	}
+
+	    	galleryState() {
+    			this.className.indexOf('active') > -1 ? this.classList.remove('active') : this.classList.add('active');
+    		}
+
+    		getImages() {
+    			var self = this;
+					window.request("api/v1/content/" + this.journey + "/assets",
+							function(error, xhr) {
+						if (error) {
+							console.error(error);
+							return;
+						}
+
+						var gallery;
+						try {
+						 	gallery = JSON.parse(xhr.responseText);
+							if (!gallery || !Array.isArray(gallery)) {
+								console.error("/images/" + this.journey + " did not return a valid response.");
+								return;
+							}
+					 	} catch (___) {
+							console.error("Unable to parse assets");
+							return;
+						}
+
+						var images = [];
+						gallery.forEach(function(image) {
+							images.push({
+								name: image.substring(0, 10) + '...' + image.substring(image.length - 5, image.length),
+								path: image
+							});
+						});
+
+						this.set('state.images', images);
+					}.bind(this));
+    		}
+
+    		//first step
+	    	onUpload(event){
+	    		var self = this;
+	    		//handles copy past into editor
+	    		if(event.type.indexOf('image') > -1){
+	    			self.set('state.dropImage', true);
+		    		self.set('state.inQueue', [event]);
+		    		self.base64();
+	    		}else{  //handles input field, drop in editor or input
+	    			event.preventDefault();
+	    			event.stopPropagation();
+	    			switch(event.type){
+		    			// input change
+		    			case 'change':
+		    				self.set('state.inQueue' , event.currentTarget.files);
+		    				self.base64();
+		    			break;
+		    			// editor or input drop
+		    			case 'drop':
+		    				if (event.originalEvent) {
+		    					self.set('state.inQueue' , event.originalEvent.dataTransfer.files);
+		    					self.base64();
+		    				}else{
+		    					self.set('state.inQueue' , event.dataTransfer.files);
+		    					self.base64();
+		    				}
+		    			break;
+		    		}
+
+		    		if(self.state.inQueue.length > 1){
+		    			self.set('state.canSkip', true);
+		    		}else{
+		    			self.set('state.canSkip', false);
+		    		}
+	    		}
+
+	    		document.getElementById('djApp').loadState(true);
+	    	}
+
+	    	//second step
+	    	base64(){
+	    		var self = this;
+	    		var r = new FileReader();
+	    		var file = self.state.inQueue[self.state.currentIndex];
+	    		self.$.renameModal.open();
+	    		r.addEventListener("load", function(){
+	    			file.imgData = r.result.split('base64,')[1];
+	    			self.set('name', file.name.split('.')[0]);
+	    			self.set('state.naming', file);
+	    			document.getElementById('djApp').loadState(false);
+	    			var nameField = self.$.newNameField;
+	    			nameField.select();
+	    		});
+
+	    		r.readAsDataURL(file);
+	    	}
+	    	//third step
+	    	nextImage(){
+	    		var self = this;
+	    		var match = false;
+	    		document.getElementById('djApp').loadState(true);
+	    		self.state.images.forEach(function(key, index){
+	    			if(key.name.split('.')[0] === self.name){
+	    				match = true;
+	    			}
+	    		});
+
+	    		if(self.name != '' && !match){
+		    		var file = self.state.naming;
+		    		var noSpaces = self.name.replace(/ /g, '-');
+		    		var noPeriods = noSpaces.replace(/\./g, '-') + '.' + file.type.split('/')[1];
+		    		file.newName = noPeriods;
+		    		self.set('name', '');
+		    		self.set('state.renamed', file);
+		    		self.set('state.naming', null);
+		    		self.set('state.currentIndex', self.state.currentIndex + 1);
+		    		self.$.renameModal.close();
+		    		self.postImage();
+		    	}else{
+		    		document.getElementById('djApp').setMessage('danger', 'Name is blank or duplicate.');
+		    		document.getElementById('djApp').loadState(false);
+		    	}
+	    	}
+
+	    	postImage() {
+	    		var self = this;
+
+					window.request("api/v1/content/" + this.journey + "/assets/" + self.state.renamed.newName,
+							function(error, xhr) {
+						if (error) {
+							console.error(xhr.response);
+							self.cancelUpload();
+  						document.getElementById('djApp').setMessage('danger', 'Something went wrong! Or this file already exists');
+  						document.getElementById('djApp').loadState(false);
+							return;
+						}
+
+						//place image in editor
+						if(self.state.dropImage) {
+//							simplemde.codemirror.replaceRange("![](" + config.gitlabHost + "/" + config.groupName + "/" + window.djConfig.DJ_JOURNEY + "/raw/master/images/" + self.state.renamed.newName + ")", simplemde.dropZone);
+							simplemde.codemirror.replaceRange("![](assets/" + self.state.renamed.newName + ")", simplemde.dropZone);
+						}
+
+						//continue renaming and uploading
+						if(self.state.currentIndex != self.state.inQueue.length) {
+							self.base64();
+							document.getElementById('djApp').setMessage('success', 'Upload Complete!');
+						}
+
+						//all renamed and uploaded
+						if(self.state.currentIndex === self.state.inQueue.length) {
+							self.cancelUpload();
+							document.getElementById('djApp').setMessage('success', 'All Images Uploaded!');
+						}
+
+						self.getImages();
+						document.getElementById('djApp').loadState(false);
+					}.bind(this), null, "POST", {
+						message: 'Uploading new image: ' + self.state.renamed.newName,
+						encoding: "base64",
+						content: self.state.renamed.imgData
+		    	});
+				}
+
+	    	setName(value){
+	    		//console.log(value)
+	    	}
+
+				setJourney(journey){
+	    		console.log(journey);
+					if (journey) {
+						this.getImages();
+					}
+	    	}
+
+	    	cancelUpload(){
+	    		this.$.imageUploadButton.value = '';
+	    		this.set('name', '');
+					this.set('state.naming', null);
+	    		this.set('state.currentIndex', 0);
+					this.set('state.inQueue', null);
+					this.set('state.dropImage', false);
+					this.set('state.renamed', null);
+					this.set('state.canSkip', false);
+					this.$.renameModal.close();
+	    	}
+
+	    	skipImage(){
+	    		if(this.state.currentIndex === this.state.inQueue.length){
+	    			this.cancelUpload();
+	    			this.$.renameModal.close();
+	    			return;
+	    		}
+	    		this.$.renameModal.close();
+	    		this.set('state.currentIndex', this.state.currentIndex + 1);
+	    		this.base64();
+	    	}
+
+	    	setImage(event) {
+    			var img = event.currentTarget;
+    			//simplemde.codemirror.replaceRange("![" + img.getAttribute('data-src') + "]()", simplemde.dropZone);
+    			simplemde.codemirror.replaceRange("![](" + img.getAttribute('data-src') + ")", simplemde.dropZone);
+    		}
+
+	    	deleteImage(event) {
+    			var self = this;
+    			var img = event.currentTarget;
+    			var path = img.getAttribute('data-src');
+    			var name = img.getAttribute('data-alt');
+
+    			var callback = {
+    				title: 'Remove Image',
+    				body: 'Are you sure you want to delete this image?',
+    				callback: function() {
+    					var projectId = window.djConfig.DJ_PROJECT_ID;
+    					window.djConfig.then(function(res) {
+    						document.querySelector('dj-app').loadState(true);
+
+    						function stringPosition(needle, haystack) {
+		              var m = needle.length,
+		                  n = haystack.length;
+
+		              if (!m || !n || m > n) {
+		                return -1;
+		              }
+
+		              if (m === n) {
+		                return needle === haystack ? 0 : -1;
+		              }
+
+		              for (var j = 0; j < n; j++) {
+	                  for (var i = 0; i < m; i++) {
+	                    if (needle[i] !== haystack[i + j]) {
+	                      break;
+	                    }
+
+	                    if (i === m - 1) {
+	                      return j;
+	                    }
+	                  }
+
+		              }
+
+		              return -1;
+	            	}
+
+								window.request("api/v1/content/" + this.journey + "/assets/" + name, function(error, xhr) {
+									if (error) {
+										console.error(err);
+										return;
+									}
+
+  								var numOfLines = simplemde.codemirror.lineCount();
+	                var lineIndex = 0;
+
+	                function checkLine(){
+	                  var line = simplemde.codemirror.getLine(lineIndex);
+	                  var start = stringPosition( path , line ) - 2;
+	                  var haystack = line.substring( start, line.length );
+	                  var finish = stringPosition(')', haystack);
+
+	                  var lineEnd = (line.length - haystack.length + 1);
+	                  if(line.substring(start, finish + lineEnd).indexOf(path) > -1){
+	                  	simplemde.codemirror.replaceRange('', {line: lineIndex, ch: start}, { line: lineIndex, ch: finish  + lineEnd});
+	                  }
+
+	                  var check = simplemde.codemirror.getLine(lineIndex)
+	                  if(check.indexOf(path) > -1){
+	                    checkLine();
+	                  }else{
+	                    lineIndex = lineIndex + 1;
+	                    if(numOfLines != lineIndex){
+	                      checkLine();
+	                    }
+	                  }
+	                }
+
+	                if(window.simplemde.value().indexOf(path) > -1){
+	                	checkLine();
+	                }
+
+  								self.getImages();
+  								document.getElementById('djApp').loadState(false);
+  							})
+    					}.bind(this), null, "DELETE");
+    				}
+    			}
+
+    			self.$.UploadConfirm.open(callback);
+    		}
+
+    		dropImage(){
+    			this.set('state.dropImage', true);
+    		}
+
+	    	static get properties() {
+				  return {
+				    name: {
+				    	type: String,
+				    	value: '',
+				      observer: 'setName'
+				    },
+						journey: {
+				    	type: String,
+				    	value: '',
+				      observer: 'setJourney'
+				    }
+				  }
+				}
+
+    		static get is() {
+    			return "live-preview-upload";
+    		}
+	    }
+    	customElements.define(LivePreviewUpload.is, LivePreviewUpload);
+  	</script>
+</dom-module>

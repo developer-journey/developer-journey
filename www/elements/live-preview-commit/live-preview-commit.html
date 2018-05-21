@@ -1,0 +1,139 @@
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/neon-animation/web-animations.html">
+<link rel="import" href="../../bower_components/neon-animation/neon-animations.html">
+<link rel="import" href="../live-preview-styles/live-preview-styles.html">
+
+<dom-module id="live-preview-commit">
+	<link rel="import" type="css" href="../../bower_components/font-awesome/css/font-awesome.min.css" />
+  	<template>
+  		<style type="text/css" include="live-preview-styles">
+  			:host::after{
+					content: none !important;
+				}
+
+	      	paper-dialog textarea{
+	      		min-height: 9.375rem;
+	      	}
+
+	      	#commitMessage::-webkit-input-placeholder {
+			        color: #ccc;
+			    }
+
+			    #commitMessage::-moz-placeholder {
+			        color: #ccc;
+			    }
+
+			    #commitMessage:-ms-input-placeholder {
+			        color: #ccc;
+			    }
+
+	      	#commitMessage:focus,
+	      	#commitMessage:active,
+	      	#commitMessage:hover{
+	      		outline: none;
+	      		box-shadow: none;
+	      		border-color: var(--gray);
+	      	}
+
+	      	.btn-success{
+	      		margin: 0 0.29em;
+	      	}
+  		</style>
+
+  		<paper-dialog id="commitModal" entry-animation="scale-up-animation" exit-animation="scale-down-animation">
+				<paper-button dialog-dismiss class="close-modal">
+      		<i class="fa fa-times"></i>
+    		</paper-button>
+      	<div class="modal-title modal-title-center">
+		  		<h6>Save</h6>
+		  	</div>
+      	<div class="modal-body">
+      		<div class="form-group">
+						<textarea id="commitMessage" class="form-control" placeholder="Enter a commit message at least 10 characters long" value="{{message::input}}" autofocus></textarea>
+					</div>
+      	</div>
+      		<div class="buttons">
+    				<paper-button class="btn btn-danger" on-click="cancel">Cancel</paper-button>
+	    			<template is="dom-if" if="{{state.message.valid}}">
+	    				<paper-button class="btn btn-success" on-click="save">OK</paper-button>
+	    			</template>
+	    			<template is="dom-if" if="{{!state.message.valid}}">
+	    				<button class="btn btn-success" disabled>OK</button>
+	    			</template>
+  			</div>
+      	</paper-dialog>
+	</template>
+
+	<script>
+	    class LivePreviewCommit extends Polymer.Element {
+	    	constructor(){
+	    		super();
+
+	    		this.state = {
+	    			message: {
+	    				valid: false
+	    			}
+	    		}
+
+	    		var self = this;
+	    		document.addEventListener('keyup', function(event){
+						if(event.keyCode === 13 && self.state.message && self.message != ''){
+							self.save();
+						}
+					});
+	    	}
+
+	    	cancel(){
+	    		var revisionComponent = document.getElementById('djApp').$.LivePreviewRevisions;
+	    		var activeRevision = revisionComponent.componentState();
+
+	    		if(activeRevision.current && activeRevision.revision){
+	    			window.simplemde.codemirror.setValue(activeRevision.current);
+	    			revisionComponent.reset();
+	    		}
+
+	    		this.message = '';
+	    		this.$.commitModal.close();
+	    	}
+
+	    	save(){
+	    		document.getElementById('djApp').save(this.message);
+	    		this.$.commitModal.close();
+	    		this.message = '';
+	    	}
+
+	    	setMessage(value){
+	    		this.message = value
+	    	}
+
+	    	commitMessage(value) { 
+    			if(value != '' && value.length > 10){
+    				this.set('state.message.valid' , true);
+    			}else{
+    				this.set('state.message.valid' , false);
+    			}
+    		}
+
+			static get properties() {
+			  return {
+			    message: {
+			    	type: String,
+			    	value: '',
+			      	observer: 'commitMessage'
+			    }
+			  }
+			}
+
+			static get is() { 
+				return "live-preview-commit"; 
+			}
+	    }
+    	customElements.define(LivePreviewCommit.is, LivePreviewCommit);
+  	</script>
+</dom-module>

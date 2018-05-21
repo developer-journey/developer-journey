@@ -1,0 +1,83 @@
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/neon-animation/web-animations.html">
+<link rel="import" href="../../bower_components/neon-animation/neon-animations.html">
+<link rel="import" href="../live-preview-styles/live-preview-styles.html">
+
+<dom-module id="live-preview-confirm">
+  <link rel="import" type="css" href="../../bower_components/font-awesome/css/font-awesome.min.css" />
+  <template>
+  	<style type="text/css" include="live-preview-styles">
+      :host(.logout) paper-dialog,
+      :host(.remove-image) paper-dialog,
+      :host(.actions-confirm) paper-dialog{
+        max-width: 22rem;
+      }
+
+      :host .dialog-header,
+      :host .dialog-body,
+      :host .modal-body{
+        text-align: center;
+      }
+
+      :host .dialog-body,
+      :host .modal-body{
+        margin: 1rem 0;
+      }
+  	</style>
+
+    <paper-dialog id="confirm" entry-animation="scale-up-animation" exit-animation="scale-down-animation">
+      <paper-button dialog-dismiss class="close-modal">
+        <i class="fa fa-times"></i>
+      </paper-button>
+      <div class="dialog-header modal-title modal-title-center">
+        <h6>{{state.title}}</h6>
+      </div>
+      <div class="modal-body dialog-body">
+        <p>{{state.body}}</p>
+      </div>
+      <div class="buttons">
+        <paper-button dialog-dismiss class="btn btn-danger">Cancel</paper-button>
+        <paper-button on-click="confirmResponse" class="btn btn-success">Confirm</paper-button>
+      </div>
+    </paper-dialog>
+  </template>
+
+  <script>
+    class LivePreviewConfirm extends Polymer.Element {
+    	constructor(){
+    		super();
+        this.state = {
+          title: null,
+          body: null,
+          callback: null
+        }
+    	}
+
+      open(obj){
+        this.$.confirm.open();
+        this.set('state', {
+          title: obj.title,
+          body: obj.body,
+          callback: obj.callback
+        });
+      }
+
+      confirmResponse(){
+        this.state.callback();
+        this.$.confirm.close();
+      }
+
+    	static get is() { 
+    		return "live-preview-confirm"; 
+    	}
+    }
+    customElements.define(LivePreviewConfirm.is, LivePreviewConfirm);
+  </script>
+
+</dom-module>

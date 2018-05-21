@@ -1,0 +1,302 @@
+<!doctype html>
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<html>
+<head>
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+
+<link rel="import" href="../../bower_components/paper-toast/paper-toast.html">
+
+<link rel="import" href="../../elements/journey-markdown/journey-markdown.html">
+
+<script src="../../request.js"></script>
+
+</head>
+
+<dom-module id="journey-create">
+  <template>
+    <style is="custom-style" include="iron-flex iron-flex-alignment iron-positioning">
+    h1 {
+      font-size: 2em;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin: 0.5em;
+    }
+
+    h2 {
+      font-size: 1.5em;
+      font-weight: bold;
+      margin: 0.25em;
+    }
+
+    #above-the-fold {
+      background-image: url(../../assets/create-backdrop.jpg);
+      background-position: 50% 30%;
+      background-size: cover;
+      background-repeat: no-repeat;
+      width: 100%;
+      min-width: 800px;
+      height: 768px;
+      box-sizing: border-box;
+      color: white;
+    }
+
+    #main-content {
+      text-align: center;
+      margin: 0 auto;
+      width: 750px;
+    }
+
+    #main-content p {
+      line-height: 1.5em;
+      font-size: 1.25em;
+    }
+
+    #main-content paper-button {
+      color: var(--paper-input-container-color, var(--secondary-text-color));
+      text-transform: capitalize;
+      font-weight: bold;
+      border-radius: 3px;
+      color: white;
+      background-color: #00A68C; /* Pantone 16-5533 Arcadia */
+    }
+
+    #below-the-fold {
+      margin-top: 1em;
+      color: #444;
+      text-align: center;
+      margin: 0 auto;
+    }
+
+    #below-the-fold > h1 {
+      margin-bottom: 0;
+    }
+
+    #below-the-fold journey-markdown {
+      width: 750px;
+      line-height: 1.25em;
+      font-size: 1.25em;
+      text-align: left;
+      --journey-markdown-header: {
+      };
+      --journey-step: {
+        margin-top: 0;
+      };
+    }
+
+    #create-actions p {
+      font-size: 0.9rem;
+    }
+
+    #create-actions h3 {
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    #create-actions .content-type {
+      padding: 1em;
+      margin: 1em;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 3px;
+    }
+
+    #create-actions paper-button:hover {
+      background-color: #20C6AC; /* Arcadia + 12% brightness */
+    }
+
+    #create-actions p.sharing {
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 0.25em;
+    }
+    </style>
+    <div id="above-the-fold" class="layout horizontal center">
+      <div id="main-content" class="layout vertical center">
+        <h1>
+          Help others succeed with the technology you work on
+        </h1>
+        <p>
+          Developer Journeys provide an opportunity for you to share your work
+          with others.
+        </p>
+        <template is="dom-if" if="[[authorized]]">
+          <div id="create-actions" class="layout vertical justified">
+            <h2>Choose your content type</h2>
+            <div class="create-types layout horizontal">
+              <div class="flex content-type layout vertical justified">
+                <div class="layout vertical">
+                  <h3>Blog Post</h3>
+                  <div>
+                    <p>Discover something cool? Share it with a blog post.</p>
+                  </div>
+                </div>
+                <div class="layout vertical">
+                  <p class="sharing">Blog posts are private by default
+                    and can be published publically if you want.</p>
+                  <paper-button on-tap="_notImplemented">Blog Post</paper-button>
+                </div>
+              </div>
+              <div class="flex content-type layout vertical justified">
+                <div class="layout vertical">
+                  <h3>Tutorial</h3>
+                  <div>
+                    <p>Create a tutorial with instructions to help others
+                      reproduce what you've accomplished.</p>
+                  </div>
+                </div>
+                <div class="layout vertical">
+                  <p class="sharing">Tutorials are private by default and can
+                    be published publically if you want, or shared via
+                    a private URL.</p>
+                  <paper-button on-tap="_notImplemented">Tutorial</paper-button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template is="dom-if" if="[[!authorized]]">
+          <p>
+            You shouldn't need to learn a lot of new tools to share ideas
+            with others. Using the Developer Journey infrastructure, you can
+            post blogs, tutorials, and articles about topics you care about,
+            using tools and technologies you are already familiar with.
+          </p>
+          <paper-button on-tap="_signup">Sign up</paper-button>
+        </template>
+      </div>
+    </div>
+    <div id="below-the-fold" class="layout vertical center">
+      <h1>Why did we make this?</h1>
+      <journey-markdown>
+
+We all solve problems every day, and others can
+benefit from those solutions. Sharing the knowledge should base
+as easy as possible.
+
+## Writing documentation takes too much time
+
+Developers frequently don't have the time to switch into a "docpub" role,
+using a different suite of applications and then fighting with those tools
+to make the **$@!*%** bullet lists work (or whatever your
+pet peeve might be.)
+
+We solved this by allowing you to create your content using a variant of
+GitHub Flavored Markdown, with the documentation hosted and revisioned in GIT.
+You create the content in plain text, using Markdown tags, and the Developer
+Journey infrastructure formats it to look great when published.
+
+
+### Why Markdown? Create content using any text editor you want
+
+![](emacs.jpg?s=align:left,size:small)
+![](vim.png?s=align:right,size:small) You can now create your content in any
+text editor you want, and publish your content using familiar
+git tools to a Developer Journey CMS instance.
+
+By leveraging [GitHub Flavored Markdown](https://github.github.com/gfm/),
+the content you create can still be viewed in text form, as well as on
+other platforms such as GitHub and GitLab. This means you can create your
+content once, and re-use aspects of it in several different ways.
+
+
+### Live preview with the ability copy/paste images
+
+![](live-preview.png?s=align:left,size:small) Or you can use a web based
+live preview editor, which will let you edit the content and see exactly
+how it will look when published externally.
+
+</journey-markdown>
+    </div>
+    <paper-toast id="not-implemented">
+      This feature is not yet implemented.
+    </paper-toast>
+  </template>
+
+  <script>
+    document.addEventListener("WebComponentsReady", function() {
+      "use strict";
+      Polymer({
+        is: "journey-create",
+        properties: {
+          authorization: Object,
+          authorized: Boolean
+        },
+
+        observers: [
+          "_authorizationChanged(authorization)"
+        ],
+
+        _signup: function() {
+          document.body.querySelector("dj-app").$.banner.login();
+        },
+
+        _notImplemented: function() {
+          var parent = Polymer.dom(this.root).querySelectorAll(".create-types .content-type");
+          this.$["not-implemented"].open();
+        },
+
+        _authorizationChanged: function(authorization) {
+          this.authorized = this.authorization && this.authorization.username;
+        },
+
+        _loadJourneys: function() {
+          if (this.loadingJourneys == true) {
+            return;
+          }
+          this.loadingJourneys = true;
+
+          window.request("journeys.json", function(error, xhr) {
+            this.loadingJourneys = false;
+            if (error) {
+              console.error(JSON.stringify(error, null, 2));
+              return;
+            }
+
+            let journeys;
+            try {
+              journeys = JSON.parse(xhr.responseText);
+            } catch (___) {
+              console.error("Unable to parse journeys.json");
+              return;
+            }
+
+            function buildProjectTitle(project) {
+              if (project.description) {
+                project.title = project.description;
+                return project.title;
+              }
+
+              if (Array.isArray(project.files)) {
+                for (var i = 0; i < project.files.length; i++) {
+                  if (project.files[i].name == "recipe") {
+                    let file = project.files[i];
+                    project.title = ('title' in file.parsed) ? file.parsed.title : file.name;
+                    return project.title;
+                  }
+                }
+              }
+
+              project.title = project.name;
+              return project.title;
+            }
+
+            this.journeys = journeys.sort(function(a, b) {
+              a = buildProjectTitle(a).toLowerCase();
+              b = buildProjectTitle(b).toLowerCase();
+              return a > b;
+            });
+          }.bind(this));
+        },
+
+        attached: function() {
+          this._loadJourneys();
+        }
+      });
+    });
+  </script>
+</dom-module>
+</html>

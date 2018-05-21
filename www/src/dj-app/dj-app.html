@@ -1,0 +1,999 @@
+<!doctype html>
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<html>
+<head>
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/app-layout/app-header/app-header.html">
+<link rel="import" href="../../bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="../../bower_components/app-layout/app-toolbar/app-toolbar.html">
+<link rel="import" href="../../bower_components/app-route/app-location.html">
+<link rel="import" href="../../bower_components/app-route/app-route.html">
+
+<link rel="import" href="../../bower_components/iron-a11y-keys/iron-a11y-keys.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/iron-pages/iron-pages.html">
+
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../../bower_components/paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../../bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="../../bower_components/neon-animation/animations/scale-up-animation.html">
+<link rel="import" href="../../bower_components/neon-animation/animations/fade-out-animation.html">
+<link rel="import" href="../../bower_components/vaadin-split-layout/vaadin-split-layout.html">
+
+<link rel="import" href="../../elements/live-preview-actions/live-preview-actions.html">
+<link rel="import" href="../../elements/live-preview-upload/live-preview-upload.html">
+<link rel="import" href="../../elements/live-preview-commit/live-preview-commit.html">
+<link rel="import" href="../../elements/live-preview-toolbar-info/live-preview-toolbar-info.html">
+<link rel="import" href="../../elements/live-preview-loader/live-preview-loader.html">
+<link rel="import" href="../../elements/live-preview-revisions/live-preview-revisions.html">
+
+<link rel="stylesheet" type="text/css" href="../../fonts/clearsans.css" />
+
+<link rel="import" href="../../elements/journey-banner/journey-banner.html">
+<link rel="import" href="../../elements/journey-picker/journey-picker.html">
+<link rel="import" href="../../elements/journey-index/journey-index.html">
+<link rel="import" href="../../elements/journey-create/journey-create.html">
+
+<link rel="import" href="../../elements/journey-markdown/journey-markdown.html">
+
+<script src="../../bower_components/simplemde/dist/simplemde.min.js"></script>
+
+<script src="../../request.js"></script>
+<style>
+  body,* {
+    font-family: Helvetica Neue,Helvetica,Arial,sans-serif;
+  }
+
+  b,strong {
+    font-family: Helvetica Neue,Helvetica,Arial,sans-serif;
+  }
+</style>
+</head>
+
+<dom-module id="dj-app">
+  <link rel="import" type="css" href="../../bower_components/simplemde/dist/simplemde.min.css" />
+  <link rel="import" type="css" href="../../bower_components/font-awesome/css/font-awesome.min.css" />
+  <template>
+    <style is="custom-style" include="iron-flex iron-flex-alignment iron-positioning">
+      :host {
+      }
+      app-toolbar {
+        background-color: rgba(64, 0, 64, 0.5);
+        color: white;
+      }
+
+      iron-pages {
+        background-color: white;
+      }
+
+      iron-pages [page] {
+        overflow: auto;
+        height: 100%;
+      }
+
+      #editorBox {
+        width: 90ex;
+        margin-top: 52px; /* Room for editor toolbar */
+        overflow: auto;
+        background: white;
+      }
+
+      #viewerBox,
+      .content-display {
+        margin-top: 52px !important; /* Room for editor toolbar */
+      }
+
+      .editor-statusbar {
+        padding: 0px 8px;
+        box-sizing: border-box;
+        min-height: 54px;
+        line-height: 54px;
+      }
+
+      .editor-toolbar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        min-height: 52px;
+        z-index: 6;
+        background-color: #fff;
+        border-radius: 0;
+        border: none;
+        border-top: 1px solid #d0d0d0;
+        border-bottom: 1px solid #d0d0d0;
+        box-shadow: 0px 0px 5px;
+        opacity: 1;
+        box-sizing: border-box;
+      }
+
+      .editor-toolbar a:active,
+      .editor-toolbar a:focus,
+      .editor-toolbar a:hover{
+        outline: none;
+      }
+
+      .editor-toolbar:hover,
+      .editor-wrapper input.title:focus,
+      .editor-wrapper input.title:hover{
+        opacity: 1;
+      }
+
+      .editor-toolbar .fa-history{
+        float: right;
+        margin-right: 1rem;
+      }
+
+      .CodeMirror{
+        box-sizing: border-box;
+        height: 100%;
+        margin: 0;
+        line-height: 1.3;
+        font-family: "Courier New", monospace;
+        font-size: 9pt;
+        border: none;
+      }
+
+      #editor {
+        width: 100%;
+        padding: 2ex;
+        box-sizing: border-box;
+        background: white;
+        overflow-y: auto; /* scroll in Y */
+        overflow-x: hidden; /* wrap in X */
+        resize: none;  /* disable user grippy for resize */
+        border: none;  /* no borders */
+        outline: none; /* remove focus indicator */
+      }
+
+      #content {
+        display: inline-block;
+        overflow: auto;
+        background: white;
+        min-width: 320px;
+        min-height: 100%;
+        width: 100%;       /* Ensure nested children scroll instead of this element */
+        max-width: 1024px; /* Max page width */
+        background-color: #fafafa;
+      }
+
+      /* If not in the editor mode, center the content */
+      #pages:not(.editor) [page="view"] #content {
+        margin: 0 auto;
+      }
+
+      [page="view"] {
+        background-color: #fafafa;
+        font-size: 12pt;
+        font-family: sans-serif;
+        width: 100%;
+	      line-height: 1.5em;
+        --journey-markdown: {
+          padding-left: 2em;
+          padding-right: 2em;
+          box-shadow: 0px 0px 15px -5px;
+        };
+      }
+
+      .editor #title {
+        cursor: pointer;
+      }
+
+      #titleEdit {
+        --paper-input-container: {
+          padding: 0;
+        };
+      }
+
+      .invisible {
+        visibility: hidden;
+      }
+
+      .cm-header{
+        font-weight: 400;
+        font-size: 12pt !important;
+        line-height: 1.5em !important;
+      }
+
+      .cm-em{
+        font-style: normal;
+      }
+
+      .cm-strong{
+        font-weight: normal;
+      }
+
+      div.copy-button {
+        color: #888;
+        line-height: 1em;
+        padding: 0.1em 0.5em;
+        height: 1em;
+        cursor: pointer;
+        user-select: none;
+        --iron-icon-width: 0.8em;
+        --iron-icon-height: 0.8em;
+      }
+
+      div.copy-button > div {
+        font-size: 0.8em;
+      }
+
+      div.copy-button:hover {
+        color: #444;
+      }
+
+
+      #edit-buttons {
+        position: fixed;
+        bottom: 1em;
+        left: 1em;
+        z-index: 100;
+      }
+
+      #edit-buttons paper-button {
+        color: var(--paper-input-container-color, var(--secondary-text-color));
+        text-transform: capitalize;
+        font-weight: bold;
+        border-radius: 3px;
+        color: white;
+        background-color: #444;
+      }
+
+      #edit-buttons paper-button[disabled] {
+        pointer-events: none;
+        background-color: #f0f0f0;
+        opacity: 0.75;
+      }
+
+      paper-button#edit-button {
+        background-color: #00A68C; /* Pantone 16-5533 Arcadia */
+      }
+
+      #toast.error {
+        --paper-toast-background-color: #f44;
+        --paper-toast-color: white;
+      }
+
+      #clipboard{
+        width: 0;
+        height: 0;
+        overflow: hidden;
+        padding: 0;
+        line-height: 0;
+        border: none;
+        pointer-events: none;
+        opacity: 0;
+      }
+
+      journey-banner:not([editing]) {
+        box-shadow: 0px 0px 5px;
+      }
+    </style>
+
+    <app-location route="{{url}}"></app-location>
+    <app-route route="{{url}}"
+        pattern="[[basePath]]"
+        data="{{data}}"
+        tail="{{route}}">
+    </app-route>
+
+    <template is="dom-if" if="{{journey}}">
+      <iron-a11y-keys target="[[target]]" keys="shift+ctrl+h" on-keys-pressed="hotKeys"></iron-a11y-keys>
+      <iron-a11y-keys target="[[target]]" keys="shift+ctrl+v" on-keys-pressed="hotKeys"></iron-a11y-keys>
+      <iron-a11y-keys target="[[target]]" keys="shift+ctrl+e" on-keys-pressed="hotKeys"></iron-a11y-keys>
+      <iron-a11y-keys target="[[target]]" keys="shift+ctrl+m" on-keys-pressed="hotKeys"></iron-a11y-keys>
+      <iron-a11y-keys target="[[target]]" keys="shift+ctrl+s" on-keys-pressed="hotKeys"></iron-a11y-keys>
+      <iron-a11y-keys target="[[target]]" keys="shift+ctrl+c" on-keys-pressed="hotKeys"></iron-a11y-keys>
+      <iron-a11y-keys target="[[target]]" keys="shift+ctrl+?" on-keys-pressed="hotKeys"></iron-a11y-keys>
+      <iron-a11y-keys target="[[target]]" keys="shift+ctrl+g" on-keys-pressed="hotKeys"></iron-a11y-keys>
+    </template>
+
+    <template is="dom-if" if="{{loading}}">
+      <live-preview-loader id="LivePreviewOverlay" class="component-container"></live-preview-loader>
+    </template>
+
+    <!--app-header-layout fullbleed-->
+    <app-header-layout fullbleed>
+
+      <app-header reveals id="appHeader" slot="header">
+        <journey-banner editing$="[[editing]]" route="{{route}}" authorization="{{authorization}}" main-toolbar id="banner"></journey-banner>
+      </app-header>
+      <live-preview-toolbar-info id="LivePreviewToolbarInfo" class$="{{toolbarInfo}}"></live-preview-toolbar-info>
+      <iron-pages id="pages" class="flex"
+          attr-for-selected="page"
+          selected="[[page]]"
+          fallback-selection="journey-picker">
+
+        <!-- Tell the use about the platform, and let them pick which type of
+            content to create -->
+        <journey-create authorization="[[authorization]]" page="create" class="flex">
+        </journey-create>
+
+        <!-- A table grid picker for selecting a journey to load -->
+        <journey-picker id="picker"
+          route="{{route}}" authorization="[[authorization]]"
+          page="journey-picker" class="flex">
+        </journey-picker>
+
+        <!-- A table grid picker for selecting a journey to load -->
+        <journey-index id="index" route="{{route}}" authorization="[[authorization]]"
+          page="journey-index" class="flex" journey="[[journey]]">
+        </journey-index>
+
+        <div id="content-page" page="view" class="layout vertical">
+          <journey-markdown
+              id="content"
+              class="flex"
+              hash="[[hash]]"
+              content-type="tutorial"
+              path="[[journey]]">
+          </journey-markdown>
+          <vaadin-split-layout hidden$="[[!editing]]" class="flex">
+            <div id="editorBox" class="layout vertical">
+              <textarea id="editor" class="flex" on-input="_onEditChanged">
+              </textarea>
+              <live-preview-revisions journey="[[journey]]" article="[[article]]" id="LivePreviewRevisions" class="component-container"></live-preview-revisions>
+              <live-preview-upload id="LivePreviewUpload" class$="component-container {{gallery.state}}" journey="[[journey]]"></live-preview-upload>
+              <live-preview-commit journey="[[journey]]" article="[[article]]" id="LivePreviewCommit" class="component-container"></live-preview-commit>
+            </div>
+            <div id="viewerBox"></div>
+          </vaadin-split-layout>
+          <live-preview-actions id="LivePreviewActions" class$="component-container {{gallery.state}}" journey="{{journey}}" article="{{article}}" mode="{{mode}}" dirty="{{editor.isDirty}}" authorization="{{authorization}}"></live-preview-actions>
+          <input type="text" id="clipboard" readonly>
+        </div>
+      </iron-pages>
+    </app-header-layout>
+
+    <paper-toast id="toast" text="{{message.text}}" horizontal-align="right"></paper-toast>
+    <live-preview-confirm id="LogoutConfirm" class="logout"></live-preview-confirm>
+  </template>
+
+  <script>
+
+    var simplemde = null;
+
+    document.addEventListener("WebComponentsReady", function() {
+      "use strict";
+      Polymer({
+        is: "dj-app",
+        properties: {
+          route: Object,
+          url: Object,
+          mode: {
+            type: Object,
+            value: {
+              editing: false,
+              type: 'view'
+            }
+          },
+          isDirty: {
+            type: Boolean,
+            value: false
+          },
+          editing: {
+            type: Boolean,
+            value: false
+          },
+          hash: String,
+          metaDown: {
+            type: Boolean,
+            value: false
+          },
+          page: {
+            type: String,
+            value: ""
+          },
+          journey: String,
+          article: String,
+          basePath: String,
+          loading: {
+            type: Boolean,
+            value: false
+          },
+          message: {
+            type: Object,
+            value: {
+              text: '',
+              type: ''
+            }
+          },
+          editor: {
+            type: Object,
+            value: {
+              isDirty: 'disabled'
+            }
+          }
+        },
+
+        observers: [
+          "_routeChanged(route.*, basePath)",
+          "_pageChanged(page)",
+          "_journeyArticleChanged(journey, article)"
+        ],
+
+        projectId: function() {
+          return new Promise(function(resolve, reject) {
+            request("api/v1/projects", function(error, xhr) {
+              if (error) {
+                var msg = "Error returned determining projects";
+                console.error(msg + ": ", error);
+                return reject(msg);
+              }
+
+              try {
+                return resolve(JSON.parse(xhr.response));
+              } catch (err) {
+                var msg = "Error while parsing projects";
+                console.error(msg);
+                return reject(msg);
+              }
+            });
+          }).then(function(projects) {
+//            window.djConfig.DJ_JOURNEY = self.journey;
+//            window.djConfig.DJ_ARTICLE = self.article;
+//            self.set('gallery.group', config.groupName);
+//            self.set('gallery.host', config.gitlabUrl);
+
+            /* If this user can edit the current project, start
+             * downloading the set of images used when editing content */
+            projects.forEach(function(key, index) {
+              if (key.name === self.journey) {
+//                window.djConfig.DJ_PROJECT_ID = key.id;
+                this.$.LivePreviewUpload.getImages();
+              }
+            }.bind(this))
+          }.bind(this)).catch(function(err) {
+            console.error(err)
+            this.set('loading', false);
+            this.setMessage('danger', 'Could not retrieve project ID');
+          }.bind(this));
+        },
+
+        commitModal: function() {
+          if (!this.isDirty) {
+            return false;
+          }
+
+          this.$.LivePreviewCommit.$.commitModal.open();
+        },
+        _savePressed: function(event) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+
+          if (!this.isDirty) {
+            return false;
+          }
+
+          return this.commitModal();
+        },
+        save: function(commitMessage) {
+          if (!this.isDirty) {
+            return false;
+          }
+
+          var savedVersion = simplemde.value(),
+            gitLabMethod = this.isNew ? this.$.banner.post : this.$.banner.put;
+
+          this.loading = true;
+
+          console.log("Commit message: " + commitMessage);
+          gitLabMethod.call(this.$.banner, "/" + this.journey + "/" + this.article, savedVersion)
+          .then(function(xhr) {
+            this.original = savedVersion;
+            /* Don't just set isDirty to false -- user might have continued
+             * editing while the content was saving */
+            this.isDirty = this.original != simplemde.value();
+            this.isNew = false;
+            this.set('loading', false);
+            this.setMessage('success', 'Saved!');
+          }.bind(this)).catch(function(error) {
+            console.error(err);
+            this.setMessage('danger', "Unable to save!");
+          }.bind(this));
+        },
+        _toggleEditor: function() {
+          this.editing = !this.editing;
+          this.$.pages.classList.toggle("editor", this.editing);
+          //this.$["edit-button"].textContent = this.editing ? "Close editor" : "Edit";
+
+          if (this.editing) {
+            /* Move the content view into the vaadin-container */
+            this.$.viewerBox.appendChild(this.$.content);
+            /* If content hasn't been edited, set the textarea content */
+            if (!this.isDirty) {
+              this.$.editor.value = this.original;
+            }
+            this.set('mode.editing', true);
+            this.set('mode.type', 'edit');
+            simplemde.value(this.$.editor.value);
+
+          } else {
+            this.$["content-page"].insertBefore(this.$.content, null);
+            this.set('mode.editing', false);
+            this.set('mode.type', 'view');
+          }
+        },
+
+        _journeyArticleChanged: function(journey, article) {
+          console.log("Journey/article changed: " + journey + "/" + (article || ""));
+          if (article) {
+//            this.projectId();
+          }
+        },
+
+        _pageChanged: function(page) {
+          console.log("Page changed: " + page);
+          var visibleScroll;
+          switch (page) {
+          /* journey-picker and journey-index use the body's scroll bar */
+          case "journey-picker":
+          case "journey-index":
+            visibleScroll = true;
+            break;
+
+          default:
+             visibleScroll = false;
+             break;
+          }
+
+          if (visibleScroll) {
+            document.body.style.overflowY = "scroll";
+          } else {
+            document.body.style.overflowY = "auto";
+          }
+        },
+
+        _loadArticle: function() {
+          var article = this.article,
+            journey = this.journey;
+
+          console.log("Loading " + journey + "/" + article);
+
+          this.$.content.loading = true;
+          if (this.editing) {
+            this.$.editor.value = "{Loading " + journey + "/" + article + "}";
+          }
+
+          this.$.banner.get(
+            "/" + journey + "/" + article
+          ).then(function(xhr) {
+            this.isNew = false;
+            return xhr.response;
+          }.bind(this)).catch(function(xhr) {
+            if (typeof xhr !== 'object' || !("response" in xhr)) {
+              throw "Unable to process returned resource.";
+            }
+
+            if (xhr.status == 404) {
+              var resource = journey + "/" + article;
+              this.isNew = true;
+              return [
+                "---",
+                "title: " + (this.title || "Untitled"),
+                "author: " + this.authorization.name,
+                "type: " + (this.entryType || "blog"),
+                "---",
+                "",
+                "# Empty content",
+                "",
+                "To create this document:",
+                "* Click the 'Login' button and login",
+                "* Toggle the editor by pressing 'CTRL-SHIFT-E'",
+                "* Delete this text from your document",
+                "* Create the content you want",
+                "* Press CTRL-SHIFT-S to Save"
+              ].join("\n");
+            }
+
+            throw "Error requesting resource: " + xhr.status;
+          }.bind(this)).then(function(unparsed) {
+            unparsed = unparsed || "";
+            if (this.testing) {
+              unparsed = [
+                "# Sample content for testing",
+                "```javascript",
+                "var i = 0;",
+                "/* 456789012345678901234567890123456789012345678901234567890123456 */"
+              ].join("\n");
+            }
+            if (this.editing) {
+              this.$.editor.value = unparsed;
+              if (window.location.hash && window.location.hash != "") {
+                window.location.hash = "";
+              }
+            }
+            this.original = unparsed;
+            this.$.content.setContent(this.journey, this.article, unparsed);
+          }.bind(this)).catch(function(error) {
+            this.$.content.setContent("", "", "**Error:** " + error);
+          }.bind(this));
+        },
+
+        /*
+         * Routes handled by dj-app:
+         *
+         * | /create                                 | Create entry point               |
+         * | /users                                  | List all registered users        |
+         * | [/users/:user]?/                        | List all journeys                |
+         * | [/users/:user]?/:journey                | List all entries in a journey    |
+         * | [/users/:user]?/:journey/:entry?/create | (C) counterpart to HTTP CREATE   |
+         * | [/users/:user]?/:journey/:entry?        | (R) counterpart to HTTP GET      |
+         * | [/users/:user]?/:journey/:entry?/edit   | (U) counterpart to HTTP PUT      |
+         * | [/users/:user]?/:journey/:entry?/delete | (D) counterpart to HTTP DELETE   |
+         *
+         * NOTE: We aren't using app-route as I haven't yet found a pattern
+         * that works reliably and intuitively without random, non-obvious,
+         * side effects and race conditions.
+         */
+        _routeChanged: function() {
+          if (!this.basePath) {
+            return;
+          }
+
+          var path = this.route.path.replace(/^\//, ""),
+            parts = path.split("/");
+          if (parts[parts.length - 1] == "") {
+            parts.pop();
+          }
+
+          if (!parts || parts.length == 0) {
+            this.journey = "";
+            this.article = "";
+            this.$.picker.filter = "";
+            this.page = "journey-picker";
+            return;
+          }
+
+          if (parts.length == 1) {
+            switch (parts[0]) {
+            case "all":
+            case "status-reports":
+            case "blogs":
+            case "personal":
+            case "tutorials":
+              this.journey = "";
+              this.article = "";
+              this.$.picker.filter = parts[0];
+              this.page = "journey-picker";
+              return;
+            }
+          }
+
+          if (this.$$("[page='" + parts[0] + "']")) {
+            var page = parts.shift(),
+              scrollToTop = (page != this.page);
+            this.page = page;
+            this.rest = parts;
+            if (scrollToTop) {
+              this.$.appHeader.scroll(0, 0);
+            }
+            return;
+          }
+
+          /* | /create                                | Create entry point               | */
+          if (parts.length == 1 && parts[0] == "create") {
+            this.page = "journey-create";
+            this.user = "";
+            this.journey = "";
+            this.article = "";
+            return;
+          }
+
+          /* | /users                                  | List all registered users        */
+          if (parts[0] == "users") {
+            //console.log("User route being used: ", parts);
+            parts.shift();
+            if (parts.length == 0) {
+              this.page = "user-list";
+              this.user = "";
+              this.journey = "";
+              this.article = "";
+              return;
+            }
+            this.user = parts.shift();
+          } else {
+            this.user = "";
+            //console.log("Non user route being used: ", parts);
+          }
+
+          /* | [/users/:user]?/                        | List all journeys                */
+          if (parts.length == 0) {
+            this.page = "journey-picker";
+            this.journey = "";
+            this.article = "";
+            return;
+          }
+
+          this.journey = parts.shift();
+
+          /* | [/users/:user]?/:journey                | List all entries in a journey    */
+          if (parts.length == 0) {
+            this.page = "journey-index";
+            this.article = "";
+            return;
+          }
+
+          if (parts.length == 1 && parts[0] == "create") {
+            this.article = "";
+            this.openNewDialog();
+            return;
+          }
+
+          this.article = parts.shift();
+
+          /* | [/users/:user]?/:journey/:entry?        | (R) counterpart to HTTP GET      */
+          if (parts.length == 0 || parts[0] == "view") {
+            this.page = "view";
+            this._loadArticle();
+            return;
+          }
+
+          /* | [/users/:user]?/:journey/:entry?/create | (C) counterpart to HTTP CREATE   */
+          /* | [/users/:user]?/:journey/:entry?/edit   | (U) counterpart to HTTP PUT      */
+          /* | [/users/:user]?/:journey/:entry?/delete | (D) counterpart to HTTP DELETE   */
+          switch (parts[0]) {
+          case "create":
+            this.openNewDialog();
+            this.page = "edit";
+            break;
+
+          case "edit":
+          case "delete":
+            this.page = parts[0];
+            break;
+
+          default:
+            console.log("Unrecognized mode requested: " + parts[0]);
+            this.page = "journey-list";
+            break;
+          }
+        },
+
+        slugify: function(string) {
+          string = string.toLowerCase();
+          string = string.replace(/\s/g, "-");
+          string = encodeURIComponent(string);
+          return string;
+        },
+
+        _onEditChanged: function(value) {
+          this.debounce("editing", function() {
+            var unparsed = value;
+            this.$.content.setContent(this.journey, this.article, unparsed);
+            this.isDirty = this.original != unparsed;
+            this.set('editor.isDirty', this.isDirty ? '' : 'disabled');
+          }, 100);
+        },
+
+        isEmpty: function(object) {
+          if (!object) {
+            return true;
+          }
+          if (Array.isArray(object) && object.length == 0) {
+            return true;
+          }
+          if (typeof object === "object" && Object.getOwnPropertyNames(object).length == 0) {
+            return true;
+          }
+          return !object;
+        },
+
+        _checkHash: function() {
+          var hash = window.location.hash.replace(/^#*(.*)/, "$1");
+
+          /* If the hash is being set for the first time, or if the
+           * hash has changed, fire off a hash-changed */
+          if (hash && !this.hash) {
+            this.hash = hash;
+          } else if (hash != this.hash) {
+            this.hash = hash;
+          }
+          this.async(this._checkHash, 250);
+        },
+
+        ready: function() {
+          console.log("dj-app ready");
+          var base = document.querySelector("base"),
+            self = this;
+
+          if (base) {
+            /* Trim trailing slash off href */
+            this.basePath = base.getAttribute("href").replace(/\/$/, "");
+          }
+          if (!this.basePath) {
+            this.basePath = "/developerjourney";
+          }
+
+          // config editor
+          simplemde = new SimpleMDE({
+            element: self.$.editor,
+            hideIcons: ["side-by-side", "guide", "preview", "image"],
+            toolbar: ["bold", "italic", "|", "heading", "|", "quote", "|", "unordered-list", "ordered-list", "|", "table", "|", /*"horizontal-rule", "|", */ "link", "|", "code", "|", {
+              name: "upload-image",
+              action: function imageModal(doc) {
+                simplemde.dropZone = simplemde.codemirror.getCursor();
+                self.$.LivePreviewActions.gallery();
+              },
+              className: "fa fa-image",
+              title: "Upload Image"
+            }, "|", {
+              name: 'toolbar-info',
+              action: function infoModal(editor) {
+                self.$.LivePreviewToolbarInfo.toolbarState();
+              },
+              className: 'fa fa-info-circle info-btn',
+              title: 'Toolbar Info'
+            }, {
+              name: 'revisions',
+              action: function setRevision(editor) {
+                self.$.LivePreviewRevisions.revisionState();
+              },
+              className: 'fa fa-history',
+              title: 'Revisions'
+            }]
+          });
+
+          //set value of editor on change
+          simplemde.codemirror.on("cursorActivity", function(doc, event){
+            simplemde.dropZone = simplemde.codemirror.getCursor();
+          });
+
+          simplemde.codemirror.on("change", function(doc, event) {
+            simplemde.dropZone = simplemde.codemirror.getCursor();
+            self._onEditChanged(simplemde.value());
+          });
+
+          //drag and drop image
+          simplemde.codemirror.on("drop", function(doc, event) {
+            event.preventDefault();
+            event.stopPropagation();
+            simplemde.dropZone = doc.coordsChar({
+              left: event.x,
+              top: event.y
+            });
+            self.$.LivePreviewUpload.onUpload(event);
+            self.$.LivePreviewUpload.dropImage();
+            self.set('gallery.selected', null);
+          });
+
+          //paste event
+          simplemde.codemirror.on("paste", function(doc, event) {
+            simplemde.dropZone = simplemde.codemirror.getCursor();
+            var items = event.clipboardData.items;
+            for (var i = 0; i < items.length; i++) {
+              var item = items[i];
+              if (item) {
+                if (item.type.indexOf('image') > -1) {
+                  event.preventDefault();
+                  self.$.LivePreviewUpload.onUpload(item.getAsFile());
+                }
+              }
+            }
+          });
+
+          var keyPressed = {};
+          document.addEventListener("keydown", function(event) {
+            self.metaDown = event.ctrlKey || event.altKey;
+            if (event.ctrlKey && event.keyCode == 83) {
+              return self._savePressed(event);
+            }
+            keyPressed[event.keyCode] = true;
+          }.bind(self));
+          document.addEventListener("keyup", function(event) {
+            self.metaDown = event.ctrlKey || event.altKey;
+            keyPressed[event.keyCode] = false;
+          }.bind(self));
+
+          self.target = document;
+
+          document.addEventListener('click', function(event){
+            if(event.clientX < self.$.LivePreviewRevisions.getBoundingClientRect().left || event.clientX > self.$.LivePreviewRevisions.getBoundingClientRect().right){
+              self.$.LivePreviewRevisions.closeRevisions();
+            }
+
+            if(event.clientY < self.$.LivePreviewRevisions.getBoundingClientRect().top - 50 || event.clientY > self.$.LivePreviewRevisions.getBoundingClientRect().bottom + 50){
+              self.$.LivePreviewRevisions.closeRevisions();
+            }
+          })
+        },
+
+        attached: function() {
+          console.log("dj-app attached");
+          /* Hash changes due to anchor clicks aren't firing the 'hashchange'
+           * event... possibly due to app-location? */
+          this.async(this._checkHash, 100);
+        },
+
+        hotKeys: function(event){
+          var self = this;
+          var key = event.detail.keyboardEvent.code
+          switch(key){
+            case 'KeyH':
+              //journeys
+              /* Disabled so we can still use the JavaScript debugger */
+              self.$.LivePreviewActions.journeys();
+            break;
+            case 'KeyH':
+              //Info Modal
+              self.$.LivePreviewActions.hotkeysModal();
+            break;
+            case 'KeyC':
+              //Copy HTML
+              self.copyHTML();
+            break;
+            case 'KeyE':
+              //Toggle Editor
+              self._toggleEditor();
+            break;
+            case 'KeyG':
+              self.$.LivePreviewActions.gallery();
+            break;
+            case 'KeyS':
+              if (!self.isDirty) {
+                return false;
+              }
+
+              self.commitModal();
+            break;
+          }
+        },
+        hotkeysModal() {
+          this.$.LivePreviewActions.hotkeysModal();
+        },
+        loadState: function(active) {
+          this.set('loading', active);
+        },
+        setMessage: function(type, text) {
+          var color = null;
+          switch(type){
+            case 'success':
+              this.$.toast.style.backgroundColor = '#3b93a2';
+            break;
+            case 'danger':
+              this.$.toast.style.backgroundColor = '#FB6058';
+            break;
+            case 'info':
+              this.$.toast.style.backgroundColor = '#d1ecf1';
+            break;
+            case 'warning':
+              this.$.toast.style.backgroundColor = '#fff3cd';
+            break;
+            case 'primary':
+              this.$.toast.style.backgroundColor = '#cce5ff';
+            break;
+            case 'secondary':
+              this.$.toast.style.backgroundColor = '#e7e8ea';
+            break;
+            default:
+              this.$.toast.style.backgroundColor = '#cce5ff';
+            break;
+          }
+          this.message = {
+            text: text,
+            type: color
+          }
+          this.$.toast.open();
+        },
+        uploadModal: function() {
+          this.$.LivePreviewRevisions.closeRevisions();
+          this.$.LivePreviewUpload.galleryState();
+        },
+        closeUploadModal: function(){
+          this.$.LivePreviewUpload.galleryClose();
+        }
+      });
+    });
+  </script>
+</dom-module>
+</html>

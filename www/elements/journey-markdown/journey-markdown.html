@@ -1,0 +1,831 @@
+<!doctype html>
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<html>
+<head>
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/iron-resizable-behavior/iron-resizable-behavior.html">
+
+<script src="../../bower_components/markdown-it/dist/markdown-it.min.js"></script>
+<script src="../../bower_components/markdown-it-task-lists/dist/markdown-it-task-lists.min.js"></script>
+
+<link rel="import" href="../journey-image/journey-image.html">
+<link rel="import" href="../journey-step/journey-step.html">
+<script src="../../bower_components/highlightjs/highlight.pack.min.js"></script>
+
+<script src="../../bower_components/js-yaml/dist/js-yaml.min.js"></script>
+
+<script src="../journey-frontmatter/journey-parse.js"></script>
+
+<link rel="import" href="highlightjs-style.html">
+
+<script src="../../request.js"></script>
+
+</head>
+
+<dom-module id="journey-markdown">
+  <template>
+    <style include="highlightjs-style iron-flex iron-flex-alignment iron-positioning">
+      :host {
+        position: relative;
+        box-sizing: border-box;
+      }
+
+      #content,
+      #loading {
+        top: 0px;
+        right: 0px;
+        bottom: 0px;
+        left: 0px;
+        min-height: 100%;
+        font-size: 12pt;
+        font-family: sans-serif;
+        box-sizing: border-box;
+        overflow: hidden;
+        @apply --journey-markdown;
+        line-height: 1.5em;
+      }
+
+      journey-step {
+        @apply --journey-step;
+      }
+
+      #content journey-image {
+        --journey-image-caption: {
+          font-size: 0.8em;
+          max-width: 100%;
+        };
+        --journey-image-box: {
+          max-width: 100%;
+        };
+      }
+
+      #loading > div {
+        font-size: 1.5em;
+        padding: 1em;
+        border: 1px solid #fff;
+        background: white;
+        border-radius: 3px;
+        box-shadow: 0px 4px 2px -2px #888;
+      }
+
+      h1, h2, h3, h4, h5 {
+        @apply --journey-markdown-header;
+      }
+
+      ul,ol {
+        overflow: hidden;
+      }
+
+      ul li {
+        list-style-type: initial;
+      }
+
+      ul.task-list li {
+        list-style: none;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8em;
+        line-height: 1.2em;
+      }
+
+      table th {
+        border: 1px solid #444;
+        padding-right: 0.5em;
+        padding-left: 0.5em;
+      }
+
+      table td {
+        vertical-align: top;
+        border: 1px solid;
+        border-color: #ddd #444;
+        padding: 0.5em;
+      }
+
+      table tr:last-child td {
+        border-color: #ddd #444 #444 #444;
+      }
+
+      .attributions-table .attribution,
+      div.code-actions {
+        color: #888;
+        line-height: 1em;
+        padding: 0.1em 0.5em;
+        height: 1em;
+        cursor: pointer;
+        user-select: none;
+        font-size: 0.8em;
+      }
+
+      a.attribution,
+      a.attribution:visited {
+        color: #888;
+        text-decoration: none;
+      }
+
+
+      div.copy-button {
+        --iron-icon-width: 0.8em;
+        --iron-icon-height: 0.8em;
+      }
+
+      div.copy-button:hover,
+      a.attribution:hover {
+        color: #444;
+        text-decoration: underline;
+      }
+
+      .slug {
+        text-decoration: none;
+        color: inherit;
+      }
+
+      pre.hljs > div > code {
+        font-size: 0.8em;
+        width: 100%;
+        overflow: auto;
+      }
+
+      pre.hljs > div > code.language-console {
+        background-color: black;
+        color: white;
+        padding: 0.5em;
+        cursor: default;
+        pointer-events: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+
+      pre.hljs {
+        line-height: 1.2em;
+        position: relative; /* So paper-icon-button can be absolute */
+        padding: 1em 0.5em;
+      }
+
+      pre > div.code-actions {
+        position: absolute;
+        right: 0;
+        top: 0;
+      }
+
+      .code-actions > *:not(:last-child) {
+        padding-right: 1em;
+      }
+
+      .line-prefix {
+        font-size: 0.8em;
+        white-space: pre;
+        border-right: 1px solid #d0d0d0;
+        padding-right: 0.5em;
+        margin-right: 0.5em;
+        opacity: 0.5;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+
+      #markdown {
+        display: none;
+      }
+
+      .attributions-table {
+        box-sizing: border-box;
+        border-top: 1px solid #d0d0d0;
+        padding-top: 0.5em;
+        margin-bottom: 1em;
+      }
+
+      .attributions-table table {
+        border: none;
+        padding: 0;
+        margin: 0.5em 0;
+      }
+
+      .attributions-table p {
+        margin: 0;
+      }
+
+      .attributions-table tr,
+      .attributions-table td {
+        vertical-align: top;
+        border: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .clearfix {
+        clear: both;
+      }
+    </style>
+
+    <div id="loading" hidden$=[[!loading]] class="flex layout horizontal justified center">
+      <div class="flex">Loading...</div>
+    </div>
+    <div id="content" hidden$=[[loading]] class="flex"></div>
+  </template>
+
+  <script>
+    document.addEventListener("WebComponentsReady", function() {
+      "use strict";
+      Polymer({
+        is: "journey-markdown",
+
+        properties: {
+          src: String,
+          hash: String,
+          loadingStarted: {
+            type: Number
+          },
+          loading: {
+            type: Boolean,
+            value: true
+          },
+          isAttached: {
+            type: Boolean,
+            value: false
+          }
+        },
+
+        observers: [
+          "load(src, isAttached)",
+          "_hashChanged(hash)"
+        ],
+
+        behaviors: [
+          Polymer.IronResizableBehavior
+        ],
+
+        _copy: function(text) {
+          var input = document.createElement("textarea"),
+            focus = document.activeElement;
+          input.width = 0;
+          input.height = 0;
+          input.display = "none";
+          document.body.appendChild(input);
+          input.value = text;
+          input.focus();
+          input.select();
+          document.execCommand("copy");
+          if (focus) {
+            focus.focus();
+          }
+          document.body.removeChild(input);
+        },
+
+        _hashChanged: function(hash) {
+          console.log("Hash changed to: " + hash);
+          var target = this.$.content.querySelector("[name='" + hash + "']");
+          if (target) {
+            target.scrollIntoView();
+          }
+        },
+
+        _slugify: function(string) {
+          string = string.toLowerCase();
+          string = string.replace(/\s/g, "-");
+          string = encodeURIComponent(string);
+          return string;
+        },
+
+        _djMarkdown: function(container) {
+          var attributions = [];
+
+          /* Wrap all <table> with a <div> so we can have it grow to fill
+           * page with display: block vs display: table */
+          Array.prototype.forEach.call(container.querySelectorAll("table"), function(table) {
+            var div = document.createElement("div");
+            /* If the table has the 'source-map' attribute, transfer
+             * it to the parent <div> that is being injected */
+            if (table.hasAttribute("source-map")) {
+              div.setAttribute("source-map", table.getAttribute("source-map"));
+              div.removeAttribute("source-map");
+            }
+            div.classList.add("layout");
+            div.classList.add("horizontal");
+            table.parentElement.replaceChild(div, table);
+            Polymer.dom.flush();
+            div.appendChild(table);
+          });
+
+          /* Process all 'code' blocks, creating the line number prefix column
+           * and setting up the attribution table, copy button, and styles */
+          Array.prototype.forEach.call(container.querySelectorAll("pre > code"), function(oldCodeBlock) {
+            var codeBlock = document.createElement("div"),
+              parent = oldCodeBlock.parentElement,
+              row0,
+              language = null;
+
+            /* If the oldCodeBlock block has the 'source-map' attribute, transfer
+             * it to the parent <pre> that was injected by markdown-it */
+            if (oldCodeBlock.hasAttribute("source-map")) {
+              parent.setAttribute("source-map", oldCodeBlock.getAttribute("source-map"));
+              oldCodeBlock.removeAttribute("source-map");
+            }
+            parent.classList.add("hljs");
+
+            /* Determine if a language was assigned to this block */
+            for (var i = 0; i < oldCodeBlock.classList.length; i++) {
+              language = /language-(.*)/.exec(oldCodeBlock.classList[i]);
+              if (language) {
+                language = language[1];
+                break;
+              }
+            }
+
+            var actions = document.createElement("div");
+            actions.classList.add("code-actions");
+            actions.classList.add("layout");
+            actions.classList.add("horizontal");
+            actions.classList.add("center");
+            Polymer.dom(parent).insertBefore(actions, oldCodeBlock);
+
+            /* If there is an attribution style, add an attribution link to the
+             * footnote */
+            if (oldCodeBlock.hasAttribute("attribution")) {
+              var anchor = document.createElement("a"),
+                attribution = oldCodeBlock.getAttribute("attribution");
+              anchor.setAttribute("href", "#footnote-" + encodeURIComponent(attribution));
+              anchor.setAttribute("name", "code-" + encodeURIComponent(attribution));
+              anchor.addEventListener("click", function(event) {
+                window.location.hash = "footnote-" + encodeURIComponent(attribution);
+                event.stopPropagation();
+                event.preventDefault();
+              });
+              anchor.classList.add("attribution");
+
+              var index = attributions.indexOf(attribution);
+              if (index == -1) {
+                attributions.push(attribution);
+                index = attributions.length;
+              } else {
+                index++;
+              }
+
+              anchor.textContent = "attribution-" + index;
+
+              actions.appendChild(anchor);
+            }
+
+            /* If the language isn't 'console', insert a copy-button before
+             * the code block */
+            if (language != "console") {
+              /* Stamp the ''# copy' button into the code block */
+              var copyButton = document.createElement('div');
+              copyButton.addEventListener("tap", function(event) {
+                /* A 'code' is in a 'code-actions' block; so double parentElement */
+                this._copy(event.currentTarget.parentElement.parentElement.querySelector("code").textContent);
+              }.bind(this))
+              /* IE doesn't support more than one class per add() call */
+              copyButton.classList.add("copy-button");
+              copyButton.classList.add("layout");
+              copyButton.classList.add("horizontal");
+              copyButton.classList.add("center");
+              Polymer.dom(copyButton).innerHTML = "<iron-icon icon='icons:content-copy'></iron-icon><div>copy</div>";
+              actions.appendChild(copyButton);
+            }
+
+            var lines = 0, prefix = "", lastContinued = false;
+            if (language && language != "text" && language != "console") {
+              for (var i = 0; i < oldCodeBlock.textContent.length; i++) {
+                if (oldCodeBlock.textContent[i] == "\n") {
+                  lines++;
+                  switch (language) {
+                  case "bash":
+                  case "sh":
+                    if (lastContinued) {
+                      prefix += "\n";
+                    } else {
+                      prefix += "$\n";
+                    }
+                    /* If the line has a continuation marker, don't add a
+                     * prefix to the next line */
+                    lastContinued = i > 0 && oldCodeBlock.textContent[i - 1] == "\\";
+                    break;
+                  case "dos":
+                  case "bat":
+                    prefix += "C:\\>\n";
+                    break;
+                  default:
+                    prefix += lines + "\n";
+                    break;
+                  }
+                }
+              }
+            } else if (language == "text") {
+              prefix = " ";
+            }
+            codeBlock.classList.add("layout");
+            codeBlock.classList.add("horizontal");
+            codeBlock.classList.add("flex");
+
+            row0 = document.createElement("div");
+            if (language != "console") {
+              row0.classList.add("line-prefix");
+              row0.textContent = prefix;
+            }
+            Polymer.dom(codeBlock).appendChild(row0);
+
+            /* Replace the code block with the new codeBlock, and
+             * add the code block into the codeBlock */
+            Polymer.dom(parent).replaceChild(codeBlock, oldCodeBlock);
+            Polymer.dom.flush();
+
+            Polymer.dom(codeBlock).appendChild(oldCodeBlock);
+          }.bind(this));
+
+          Array.prototype.forEach.call(container.querySelectorAll("img[data-src]"), function(el) {
+            var image = document.createElement("journey-image");
+            [ "source-map", "title", "alt" ].forEach(function(attr) {
+              if (el.hasAttribute(attr)) {
+                image.setAttribute(attr, el.getAttribute(attr));
+              }
+            });
+            if (this.server) {
+              image.setAttribute("server", this.server);
+            }
+            /* Re-map data-src to src */
+            if (this.path) {
+              image.setAttribute("src", this.path + "/" + el.getAttribute("data-src"));
+            } else {
+              image.setAttribute("src", el.getAttribute("data-src"));
+            }
+            el.parentElement.replaceChild(image, el);
+          }.bind(this));
+
+          /* Process source-map entries last after all other DOM elements have
+           * been re-stamped / injected / transformed.
+           * Walk through all of the content looking for non-sequential line
+           * mappings; if they exist, add a "clear:both" to the <p> element
+           * that skipped a chunk */
+          var prior = 0;
+          Polymer.dom.flush(); /* Ensure all of the above has completed */
+          Array.prototype.forEach.call(container.querySelectorAll("[source-map]"), function(el) {
+            /* If only one value is provided, it is start and end. If two are
+             * provided, the first is start, the second the end (eg a fenced
+             * code block) */
+            var range = el.getAttribute("source-map").split(","),
+              start = parseInt(range[0]),
+              end = range.length == 1 ? start : parseInt(range[1]);
+            if (prior == 0) {
+              prior = end;
+            }
+            if (el.tagName == "LI") {
+              var newlines = /\n/g.exec(el.textContent);
+              if (!newlines) {
+                prior = start + 1;
+                end = prior;
+              }
+            }
+            /* More than one line skipped; add "clearfix", else remove it */
+            el.classList.toggle("clearfix", (start - prior > 1));
+            prior = end;
+          }.bind(this));
+
+          /* Create the attributions table at the bottom of the document */
+          if (attributions.length > 0) {
+            var block = document.createElement("div");
+            block.classList.add("attributions-table");
+            block.classList.add("layout");
+            block.classList.add("vertical");
+            block.innerHTML = "<div>This content may include material from the following sources:</div>";
+
+            var table = document.createElement("table");
+            block.appendChild(table);
+
+            attributions.forEach(function(attribution, index) {
+              var entry = document.createElement("tr"),
+                anchor = document.createElement("a");
+              anchor.classList.add("attribution")
+              anchor.setAttribute("href", "#code-" + encodeURIComponent(attribution));
+              anchor.addEventListener("click", function(event) {
+                window.location.hash = "code-" + encodeURIComponent(attribution);
+                event.stopPropagation();
+                event.preventDefault();
+              });
+              anchor.setAttribute("name", "footnote-" + encodeURIComponent(attribution));
+              anchor.textContent = (index + 1) + ".";
+              var td = document.createElement("td");
+              td.appendChild(anchor);
+              entry.appendChild(td);
+              td = document.createElement("td");
+
+              /* Look for the attribution reference in the page, and move
+               * it to the attribution table if found */
+              var regexp = new RegExp("^\\[\\^" + attribution + "\\]\\s*"),
+                paragraphs = container.querySelectorAll("p"),
+                found = false;
+              for (var i = 0; i < paragraphs.length; i++) {
+                var p = paragraphs[i], match = regexp.exec(p.firstChild.textContent);
+                if (match && match.length) {
+                  p.firstChild.textContent = p.firstChild.textContent.replace(regexp, "");
+                  td.appendChild(p);
+                  found = true;
+                  break;
+                }
+              }
+              if (!found) {
+                td.textContent = "Source reference for 'attribution-" +
+                    (index + 1) + "' is missing.";
+              }
+              entry.appendChild(td);
+              table.appendChild(entry);
+            });
+
+            container.appendChild(block);
+          }
+        },
+
+        _loadingChanged: function(loading) {
+          if (loading) {
+            this.loadingStarted = Date.now();
+          }
+        },
+
+        _djStyle: function(container) {
+          /* Walk through all of the top level <H*> tags.
+           *
+           * Look for patterns matching the following, and construct the
+           * journey-* object. These include:
+           *
+           * * Steps
+           * * Ingredients
+           *
+           * For non-patterns, create a journey-step for each header if it
+           * is at or higher level than the prior level.
+           *
+           * Replace them in-stream
+           */
+          var el = container.firstChild,
+            stepRegExp = /^\s*(step|next(\s+step))\s*([0-9.]+)?[:.]\s*(.+)$/i,
+            stepIndex = 1,
+            step = document.createElement("journey-step"),
+            firstStep = null;
+
+          step.basePath = this.path + "/" + this.article;
+
+          /* The content can start outside of a header or step block */
+          while (el) {
+            var item = el, headerLevel;
+
+            /* If this isn't a header, add this element to the current
+             * step */
+            if (!/h[0-9]/i.exec(el.tagName)) {
+              var tmp = el.nextElementSibling;
+              Polymer.dom(step).appendChild(el);
+              headerLevel = 0;
+              el = tmp;
+            } else {
+              var parts = stepRegExp.exec(el.textContent);
+              /* This is a 'step' */
+              if (parts) {
+                step.heading = parts[4];
+                step.stepIndex = stepIndex++;
+              } else {
+                step.heading = el.textContent;
+              }
+              headerLevel = parseInt(el.tagName.replace(/h([0-9]*)/i, "$1"));
+
+              el = el.nextElementSibling;
+            }
+
+            /* The step ends at a header of the same level or higher than
+             * the current, or if it is a step */
+            while (el) {
+              var header = /h([0-9]*)/i.exec(el.tagName);
+
+              /* If this is a header, and it's <= the current step level, or
+               * it is a step, then don't add this item to the current step */
+              if (header && header.length) {
+
+                /* This is a header. If it isn't a step, add a slugify
+                 * anchor */
+                var isStep = stepRegExp.exec(el.textContent);
+/*
+this code stamps an anchor around a header so all headers can be referenced
+via hash-links. However, the rest of the code is built to pull the header
+level out of the el.tagName... which is now an <a> instead of <h?>
+
+                if (!isStep) {
+                  var a = document.createElement("a"),
+                    slug = this.slugify(el.textContent);
+                  a.classList.add("slug");
+                  a.setAttribute("href", step.basePath + "#" + slug);
+                  a.setAttribute("name", slug);
+                  a.appendChild(el.parentElement.replaceChild(a, el));
+                  if (el.hasAttribute("source-map")) {
+                    a.setAttribute("source-map", el.getAttribute("source-map"));
+                    el.removeAttribute("source-map");
+                  }
+                  el = a;
+                }
+*/
+                if (header[1] <= headerLevel || isStep) {
+                  break;
+                }
+              }
+
+              /* This element belongs in the current step */
+              var tmp = el.nextElementSibling;
+              Polymer.dom(step).appendChild(el);
+              el = tmp;
+            }
+
+            /* If the item's parent isn't the container, this item is not
+             * being swapped in-place and is content before the first step */
+            if (item.parentElement != container) {
+              container.insertBefore(step, container.firstChild);
+            } else {
+              container.replaceChild(step, item);
+            }
+            step.setAttribute("source-map", item.getAttribute("source-map"));
+
+            /* Start the next step */
+            step = document.createElement("journey-step");
+            step.basePath = this.journey + "/" + this.article;
+          }
+
+          if (step.firstChild) {
+            container.replaceChild(step, container.firstChild);
+            step.setAttribute("source-map", container.firstChild.getAttribute("source-map"));
+          }
+        },
+
+        setContent(path, article, content) {
+          this.path = path;
+          this.article = article;
+          if (!content || content == "Loading...") {
+            if (content == "Loading...") {
+              Polymer.dom(this.$.content).innerHTML = content;
+            }
+            return;
+          }
+
+          /* Make sure the 'Loading...' is shown long enough for the reader to
+           * know what it said */
+          if (this.loading) {
+            this.async(function() {
+              this.loading = false;
+              /* resize isn't fired on visibility change, so send the resize
+               * to the content pane so it can resize any images, etc. */
+              this.async(this.notifyResize);
+            }, Math.max(0, 1000 - (Date.now() - this.loadingStarted)));
+          }
+
+          /* Parse and remove the front-matter from the content */
+          var parsed = parseFrontMatter(content);
+          if (!parsed) {
+            parsed = {
+              frontMatterLines: 0
+            };
+          } else {
+            content = parsed.content;
+            delete parsed.content;
+          }
+          this.parsed = parsed;
+
+
+          /* Content defaults to being 'blog' */
+          var contentType = "blog";
+          if (parsed.type) {
+            /* Type: MSR or WSR or STATUS or STATUS-REPORT */
+            if (/^((status(-report)?)|([wm]sr))$/i.exec(parsed.type)) {
+              contentType = "status report";
+            } else if (/^(tutorial)|(instructable)|(diy)$/i.exec(parsed.type)){
+              contentType = "tutorial";
+            } else if (/^(plain)|(text)$/i.exec(parsed.type)){
+              contentType = "plain";
+            }
+          }
+
+          Polymer.dom(this.$.content).innerHTML = this.md.render(content);
+          Polymer.dom.flush();
+          this._djMarkdown(this.$.content);
+          switch (contentType) {
+          case "blog":
+          case "status-report":
+          case "tutorial":
+            this._djStyle(this.$.content);
+            break;
+          case "plain":
+          default:
+            break;
+          }
+
+          /* After the DOM has been stamped with source map data, fire the
+          * content-mapped event */
+          this.fire("content-mapped", {});
+        },
+
+        load: function(src, isAttached) {
+          /* If not attached yet, or if there is no src, then don't do
+           * anything */
+          if (!src || !isAttached) {
+            return;
+          }
+          this.loading = true;
+          window.request(src, function(error, xhr) {
+            var content;
+            if (error) {
+              console.warn(error);
+              this.setContent(this.path, this.article, "Content not found.");
+            } else {
+              this.setContent(this.path, this.article, xhr.responseText);
+            }
+          }.bind(this));
+        },
+
+        created: function() {
+          var md = window.markdownit({
+            html: false,
+            xhtmlOut: false,
+            breaks: false,
+            langPrefix: 'language-',
+            linkify: false,
+            typographer: false,
+            highlight: function (str, lang) {
+              if (lang && window.hljs && window.hljs.getLanguage(lang)) {
+                try {
+                  /* This must not start with <pre> or markdown-it will not
+                   * inject the source-map attribute into the element */
+                  return window.hljs.highlight(lang, str).value;
+                } catch (__) {}
+              }
+              return this.md.utils.escapeHtml(str);
+            }.bind(this)
+          });
+
+          function addSourceMap(original, tokens, index, options, env, self) {
+            if (tokens[index].type == "image") {
+              /* IF this is an image token, change the src attribute to
+               * data-src so the browser doesn't attempt to load the IMG
+               * until we've converted it to a journey-image in _djMarkdown */
+              var srcIndex = tokens[index].attrIndex("src");
+              if (srcIndex != -1) {
+                /* In markdown-it, attrs is an array of  <name,value> tuples */
+                tokens[index].attrs[srcIndex][0] = "data-src";
+              }
+            }
+
+            /* If there is line number information, and this is a top level
+             * item, then record the line map data as an attribute on the
+             * DOM stamped item */
+            if (tokens[index].map) {// && tokens[index].level === 0) {
+              if (tokens[index].type == "fence") {
+                /* If this is a code fence, check for the DJ attribution suffix */
+                var match = /^.*\[\^([^\]]*)]/.exec(tokens[index].info);
+                if (match && match.length == 2) {
+                  tokens[index].attrSet("attribution", match[1]);
+                }
+              }
+              tokens[index].attrSet('source-map', tokens[index].map.join(","));
+            }
+            /* Chain to the original renderer if one existed */
+            if (original) {
+              return original(tokens, index, options, env, self);
+            } else {
+              return self.renderToken(tokens, index, options, env, self);
+            }
+          }
+
+          /* Install rendering rules for top level blocks */
+          [ "fence", "image", "paragraph_open", "table_open", "heading_open",
+            "ordered_list_open", "bullet_list_open", "list_item_open" ].forEach(function(type) {
+            md.renderer.rules[type] = addSourceMap.bind(md, md.renderer.rules[type]);
+          });
+
+          this.md = md;
+        },
+
+        attached: function() {
+          this.loadingStarted = Date.now();
+
+          var content = (Polymer.dom(this).innerHTML || "").trim();
+          if (content != "") {
+            this.loading = false;
+
+            /* Inject into the Shadow DOM */
+            this.setContent("", "", content);
+
+            /* Delete the local DOM */
+            Polymer.dom(this).innerHTML = "";
+
+            /* ...or should we keep it in local DOM so it can be styled? */
+          }
+
+          this.isAttached = true;
+        }
+      });
+    });
+  </script>
+</dom-module>
+</html>

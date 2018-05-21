@@ -1,0 +1,7 @@
+{
+  "name": "dj",
+  "short_name": "dj",
+  "description": "Developer Journey",
+  "start_url": "/",
+  "display": "standalone"
+}

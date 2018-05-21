@@ -1,0 +1,342 @@
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/neon-animation/web-animations.html">
+<link rel="import" href="../../bower_components/neon-animation/neon-animations.html">
+<link rel="import" href="../../elements/live-preview-confirm/live-preview-confirm.html">
+<link rel="import" href="../live-preview-styles/live-preview-styles.html">
+
+<dom-module id="live-preview-actions">
+  <link rel="import" type="css" href="../../bower_components/font-awesome/css/font-awesome.min.css" />
+  <template>
+  	<style type="text/css" include="live-preview-styles">
+    :root{
+      --btn-disabled: #a5a5a5;
+    }
+
+    :host{
+      width: auto;
+      min-width: 0;
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      margin: 0;
+      z-index: 3;
+      transition: all 400ms;
+    }
+
+    :host *{
+      box-sizing: border-box;
+    }
+
+    :host(.active){
+      bottom: 20rem;
+    }
+
+    #actionsGroup{
+      max-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      float: left;
+      box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
+      transition: all 400ms;
+    }
+
+    #actionsGroup.active{
+      max-width: 100vw;
+    }
+
+    .actions-menu{
+      display: flex;
+      float: left;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      background-color: var(--secondary);
+      box-shadow: -5px 0px 10px rgba(0,0,0,0.3);
+    }
+
+    .actions-menu:last-of-type{
+      box-shadow: 5px 0px 10px rgba(0,0,0,0.3);
+    }
+
+    .actions-menu:first-of-type{
+      margin-left: 1rem;
+    }
+
+    #actionsGroup .actions-menu{
+      margin-left: 0;
+    }
+
+    .actions-menu::after{
+      content: '';
+      height: 100%;
+      display: block;
+      clear: both;
+    }
+
+    .actions-menu li:hover a,
+    .actions-menu li:hover paper-button{
+      cursor: pointer;
+      background-color: var(--secondary-dark);
+    }
+
+    #actions-menu li{
+      border: none;
+    }
+
+    .actions-menu li a,
+    .actions-menu li paper-button{
+      min-width: 0;
+      display: inline-block;
+      margin: 0;
+      padding: .8rem 1rem;
+      text-align: center;
+      border-right: 1px solid var(--secondary-dark);
+      border-radius: 0;
+    }
+
+    #action-menu-toggle a,
+    #action-menu-toggle paper-button,
+    .action-gallery-toggle a,
+    .action-gallery-toggle paper-button{
+      background-color: var(--secondary);
+    }
+
+    .actions-menu li a.view,
+    .actions-menu li paper-button.view,
+    .actions-menu li a.disabled,
+    .actions-menu li paper-button.disabled{
+      pointer-events: none;
+      background-color: var(--btn-disabled);
+    }
+
+    .actions-menu li.view .edit,
+    .actions-menu li.edit .view{
+      display: none;
+    }
+
+    #hotkeysModalButton{
+      transition: all 400ms;
+    }
+
+    #hotkeysModalButton.active{
+      background-color: var(--secondary-dark);
+    }
+
+    .actions-menu li a i,
+    .actions-menu li paper-button i{
+      color: #fff;
+      font-size: 1.5rem;
+    }
+
+      paper-dialog{
+        max-width: 30rem;
+      }
+
+      paper-dialog #key-reference-container{
+        padding: 3.75rem;
+        background-color: #f1f1f1;
+        border-radius: .3rem;
+      }
+
+      paper-dialog #key-reference-container .modal-title{
+        padding-bottom: 1rem;
+      }
+
+      paper-dialog #key-reference-container ul{
+        list-style: none;
+      }
+
+      paper-dialog #key-reference-container ul li{
+        margin-bottom: 1rem;
+        font-size: 1.5625rem;
+        line-height: 1.5625rem;
+        font-weight: 400;
+        letter-spacing: 3px;
+        color: var(--paper-grey-600);
+      }
+
+      paper-dialog #key-reference-container ul li span{
+        min-width: 3.4375rem;
+        min-height: 2.8125rem;
+        display: inline-block;
+        padding: .5rem 0.875rem;
+        border-radius: 0.3125rem;
+        border: 1px solid #000;
+        font-size: 1.875rem;
+        background-color: #d8d8d8;
+        color: var(--paper-grey-600);
+        text-align: center;
+      }
+  	</style>
+	    <ul class="actions-menu">
+          <li class="action-gallery-toggle">
+            <paper-button class$="{{mode.type}}" on-click="gallery">
+              <i class="fa fa-image"></i>
+            </paper-button>
+          </li>
+      </ul>
+      <div id="actionsGroup">
+        <ul class="actions-menu">
+        	<li>
+        		<paper-button id="hotkeysModalButton" on-click="hotkeysModal">
+        			<i class="fa fa-question-circle-o"></i>
+        		</paper-button>
+        	</li>
+          <template is="dom-if" if="{{authorization.is_admin}}">
+          	<li class$="{{mode.type}}">
+          		<paper-button class$="{{dirty}} edit" on-click="save">
+          			<i class="fa fa-floppy-o"></i>
+          		</paper-button>
+              <paper-button class="view">
+                <i class="fa fa-floppy-o"></i>
+              </paper-button>
+          	</li>
+          </template>
+        	<li on-click="home">
+        		<paper-button>
+        			<i class="fa fa-columns"></i>
+        		</paper-button>
+        	</li>
+          <template is="dom-if" if="{{authorization.is_admin}}">
+          	<li>
+              <paper-button data-mode$="{{mode}}" on-click="editor">
+                <i class="fa fa-pencil-square-o"></i>
+              </paper-button>
+            </li>
+          </template>
+      </ul>
+    </div>
+    <ul id="actions-menu" class="actions-menu">
+    	<li id="action-menu-toggle" on-click="actionMenuState">
+	    	<paper-button>
+	    		<i class="fa fa-cog"></i>
+	    	</paper-button>
+	    </li>
+    </ul>
+
+    <paper-dialog id="hotkeysReferenceModal" entry-animation="scale-up-animation" exit-animation="scale-down-animation" no-cancel-on-esc-key="false" no-cancel-on-outside-click="true">
+      <paper-button on-click="closeHotKeysModal" class="close-modal">
+        <i class="fa fa-times"></i>
+      </paper-button>
+      <div class="modal-title modal-title-center">
+        <h6>Help</h6>
+      </div>
+      <paper-dialog-scrollable>
+        <div id="key-reference-container">
+          <div class="modal-title modal-title-center">
+            <h6>SHIFT + CTRL +</h6>
+          </div>
+          <ul id="key-references">
+              <li>
+                <span class="key">G</span> = Gallery
+              </li>
+              <li>
+                <span class="key">?</span> = Help Toggle
+              </li>
+              <li>
+                <span class="key">S</span> = Save
+              </li>
+              <li>
+                <span class="key">H</span> = Home
+              </li>
+              <li>
+                <span class="key">E</span> = Toggle Editor
+              </li>
+          </ul>
+        </div>
+      </paper-dialog-scrollable>
+    </paper-dialog>
+    <live-preview-confirm id="ActionsConfirm" class="actions-confirm"></live-preview-confirm>
+  </template>
+
+  <script>
+    class LivePreviewActions extends Polymer.Element {
+    	constructor(){
+    		super()
+    	}
+
+      gallery(){
+        this.$.actionsGroup.classList.remove('active');
+        this.closeHotKeysModal();
+        if(this.className.indexOf('active') > -1){
+          document.getElementById('djApp').uploadModal();
+          this.classList.remove('active');
+        }else {
+          document.getElementById('djApp').uploadModal();
+          this.classList.add('active');
+        }
+      }
+
+      closeGallery(){
+        this.classList.remove('active');
+        document.getElementById('djApp').uploadModal();
+      }
+
+    	actionMenuState(){
+        if(this.$.actionsGroup.className.indexOf('active') > -1){
+          this.closeHotKeysModal();
+          this.$.actionsGroup.classList.remove('active');
+        }else {
+          this.$.actionsGroup.classList.add('active');
+        }
+    	}
+
+      save(){
+        document.getElementById('djApp').commitModal();
+        this.$.actionsGroup.classList.remove('active');
+      }
+
+      closeHotKeysModal(){
+        this.$.hotkeysModalButton.classList.remove('active');
+        this.$.hotkeysReferenceModal.close();
+      }
+
+      hotkeysModal(){
+        if(this.$.hotkeysModalButton.className.indexOf('active') > -1){
+          this.$.hotkeysModalButton.classList.remove('active');
+          this.$.hotkeysReferenceModal.close();
+        }else{
+          if(this.className.indexOf('active') > -1){
+            this.closeGallery();
+          }
+          this.$.hotkeysModalButton.classList.add('active');
+          this.$.hotkeysReferenceModal.open();
+        }
+      }
+
+      closeHotKeysModal(){
+        this.$.hotkeysModalButton.classList.remove('active')
+        this.$.actionsGroup.classList.remove('active');
+        this.$.hotkeysReferenceModal.close();
+      }
+
+      journeys() {
+        this.closeHotKeysModal();
+        document.querySelector("dj-app").$.banner.home();
+      }
+
+      editor(event){
+        this.$.hotkeysReferenceModal.close();
+        this.$.hotkeysModalButton.classList.remove('active');
+        document.getElementById('djApp')._toggleEditor(event);
+        if(this.className.indexOf('active') > -1){
+          document.getElementById('djApp').uploadModal();
+          this.classList.remove('active');
+        }
+        this.$.actionsGroup.classList.remove('active');
+      }
+
+    	static get is() {
+    		return "live-preview-actions";
+    	}
+    }
+    customElements.define(LivePreviewActions.is, LivePreviewActions);
+  </script>
+
+</dom-module>

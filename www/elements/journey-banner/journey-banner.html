@@ -1,0 +1,511 @@
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/app-route/app-route.html">
+
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+
+<link rel="import" href="../../elements/live-preview-confirm/live-preview-confirm.html">
+
+<script src="../../request.js"></script>
+
+<dom-module id='journey-banner'>
+  <template strip-whitespace>
+    <style is="custom-style" include="iron-flex iron-flex-alignment iron-positioning">
+    :host {
+      box-sizing: border-box;
+      font-family: "Clear Sans", IntelClearLight, MuliRegular, Helvetica, Arial, sans-serif;
+      font-size: 1rem;
+      display: block;
+      cursor: default;
+      padding: 0.5em;
+      background-color: white;
+      overflow: hidden;
+      border-top: .25rem solid #d0d0d0;/*var(--secondary-dark);*/
+    }
+
+    span {
+      padding: 0 0.5rem;
+    }
+
+    #gitlab,
+    #login {
+        display: inline-block;
+    }
+
+    #gitlab span,
+    #login span {
+      text-transform: lowercase;
+      transition: all 200ms;
+    }
+
+
+    #gitlab span:hover,
+    #login span:hover{
+      cursor: pointer;
+      color: var(--secondary);
+    }
+
+    a {
+        line-height: 0.8rem;
+        font-size: 0.8rem;
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+    a[href^="http"] {
+        padding-right: 0;
+        background: none;
+    }
+
+    #avatar {
+      width: 32px;
+      height: 32px;
+      display: inline-block;
+      background-position: center center;
+      background-repeat: no-repeat no-repeat;
+      background-size: cover;
+      border: 1px solid #808080;
+      border-radius: 16px;
+      overflow: hidden;
+      box-sizing: border-box;
+      vertical-align: middle;
+      margin-left: 0.25rem;
+      font-size: 2rem;
+      line-height: 1.75rem;
+      font-weight: bold;
+      text-align: center;
+      border: 1px solid var(--secondary);
+    }
+
+    #logo #logo-image {
+        margin-right: 0.5em;
+        width: 2em;
+        height: 2em;
+        box-sizing: border-box;
+        border: 1px solid black;
+        background-size: contain;
+        background-position: center center;
+        background-image: url(logo-small-white.png);
+        /*      border-radius: 1em;*/
+        transition: transform 0.1s ease-in-out, background-size 0.1s ease-in-out;
+        background-color: rgba(0, 0, 0, 0.75);
+        cursor: pointer;
+    }
+
+    #logo {
+      box-sizing: border-box;
+      white-space: nowrap;
+      cursor: pointer;
+      margin-right: 1em;
+    }
+
+    #logo:hover {
+      text-decoration: underline;
+    }
+
+    #logo:hover #logo-image {
+      border-color: white;
+      background-color: black;
+      background-size: 110%;
+      transform: rotateZ(360deg);
+    }
+
+    #logo-developer {
+      font-weight: bold;
+    }
+
+    #logo-journey {
+    }
+
+    #site-actions {
+      margin-right: 1em;
+      --paper-icon-button: {
+        padding: 0;
+        width: 20px;
+        height: 20px;
+        box-sizing: border-box;
+      };
+      --iron-icon: {
+      fill: #888;
+        vertical-align: inherit;
+        box-sizing: border-box;
+        width: 20px;
+        height: 20px;
+      };
+    }
+
+    paper-input {
+      border-radius: 3px;
+      border: 1px solid rgba(0, 0, 0, 0.25);
+      padding-left: 0.57em;
+      padding-right: 0.57em;
+    }
+
+    paper-input:hover {
+      background: #eee;
+    }
+
+    paper-input[focused] {
+      background: #eee;
+      border-color: var(--paper-input-container-focus-color, var(--primary-color));
+    }
+
+    paper-button {
+      color: var(--paper-input-container-color, var(--secondary-text-color));
+      text-transform: capitalize;
+      font-weight: 200;
+      border-radius: 3px;
+      border: 1px solid rgba(0, 0, 0, 0.25);
+    }
+
+    paper-button[focused] {
+      color: inherit;
+      background: #eee;
+      border-color: var(--paper-input-container-focus-color, var(--primary-color));
+    }
+
+    paper-button:hover {
+      background: #eee;
+    }
+
+    paper-icon-button[disabled] {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    paper-icon-button {
+      opacity: 1;
+      pointer-events: inherit;
+      --iron-icon-fill-color: black;
+    }
+
+    #create {
+      color: var(--paper-input-container-color, var(--secondary-text-color));
+      text-transform: capitalize;
+      font-weight: bold;
+      border-radius: 3px;
+      color: white;
+      background-color: #00A68C; /* Pantone 16-5533 Arcadia */
+    }
+
+    #create:hover {
+      background-color: #20C6AC; /* Arcadia + 12% brightness */
+    }
+  </style>
+
+  <app-route route="{{route}}"
+      pattern="/:param"
+      data="{{data}}"
+      tail="{{tail}}">
+  </app-route>
+
+  <div class="layout horizontal justified center">
+    <div id="logo" on-tap="home" title="developerjourney" class="horizontal layout center">
+      <div id="logo-image"></div>
+      <div id="logo-developer">developer</div>
+      <div id="logo-journey">journey</div>
+    </div>
+    <div id="site-actions" class="flex horizontal layout center">
+      <paper-input no-label-float id="search" value="{{search}}" label="Explore">
+        <iron-icon icon="search" slot="prefix"></iron-icon>
+        <paper-icon-button
+          id="clearButton"
+          disabled$="[[isEmpty(search)]]"
+          slot="suffix"
+          tabindex="-1"
+          on-tap="_clearSearch"
+          icon="clear"></paper-icon-button>
+      </paper-input>
+      <paper-button id="create" on-tap="create">create a post</paper-button>
+    </div>
+    <div class="horizontal layout">
+      <paper-button hidden$="[[user]]" id="login" on-tap="login">Login</paper-button>
+      <div hidden$="[[!user]]" class="layout horizontal center">
+        <div id='avatar'></div>
+        <div id='gitlab'><span>{{user}}</span> <paper-button on-tap="confirmLogout">Logout</paper-button></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  Polymer({
+    is: "journey-banner",
+    properties: {
+      route: {
+        type: Object,
+        reflectToAttribute: true
+      },
+      search: {
+        type: String,
+        value: ""
+      },
+      clear: {
+        type: String,
+        value: ''
+      },
+      user: {
+        type: String,
+        notify: true
+      },
+      authorization: {
+        type: Object,
+        value: {
+            state: 'inactive',
+            username: null,
+        },
+        notify: true
+      }
+    },
+
+    observers: [
+      "_authorizationChanged(authorization)",
+      "_onSearchChanged(search)"
+    ],
+
+    ready: function(){
+    },
+
+    confirmLogout: function(){
+      var self = this;
+      var callback = {
+        title: 'Logout',
+        body: 'Are you sure you want to logout?',
+        style: 'normal',
+        callback: function(){
+          return self.getConfig().then(function(res) {
+            self.logout();
+          });
+        }
+      }
+
+      document.querySelector('dj-app').$.LogoutConfirm.open(callback);
+    },
+
+    home: function() {
+      this.set("route.path", "/");
+    },
+
+    _onSearchChanged: function(search) {
+//      search.length != 0 ? this.set('clear', 'active') : this.set('clear', '');
+    },
+
+    create: function() {
+      this.set("route.path", "/create");
+    },
+
+    _clearSearch: function() {
+      this.$.search.value = "";
+    },
+
+    isEmpty: function(object) {
+      if (!object || object === "") {
+        return true;
+      }
+
+      if (Array.isArray(object) && object.length == 0) {
+        return true;
+      }
+
+      if (typeof object === "object" && Object.getOwnPropertyNames(object).length == 0) {
+        return true;
+      }
+
+      return !object;
+    },
+
+    logout: function() {
+      if (this.authorization.state == 'active') {
+        window.request('authenticate/logout');
+        this.authorization = {
+          state: 'inactive'
+        };
+      }
+    },
+
+    getConfig: function() {
+      if (this.config) {
+        return this.config;
+      }
+
+      return this.config = new Promise(function(resolve, reject) {
+        request("api/v1/config", function(error, xhr) {
+          if (error) {
+            var msg = "Error returned determining DJ configuration";
+            console.error(msg + ": ", error);
+            return reject(msg);
+          }
+
+          try {
+            var config = JSON.parse(xhr.response);
+            config.gitlabUrl = config.gitlabHost + config.gitlabPath;
+            this.config = config;
+            return resolve(config);
+          } catch (err) {
+            var msg = "Error while parsing DJ configuration";
+            console.error(msg);
+            return reject(msg);
+          }
+        });
+      });
+    },
+
+    get: function(path) {
+      return this.getConfig().then(function(config) {
+        return config.djUrl + "api/v1/content" + path;
+      }).then(function(url) {
+        return new Promise(function(resolve, reject) {
+          window.request(url, function(error, xhr) {
+            if (error) {
+              console.error(error);
+              return reject(xhr);
+            }
+
+            return resolve(xhr);
+          }, { "Content-Type": "text/plain" }, "GET");
+        });
+      });
+    },
+    put: function(path, body) {
+      return this.getConfig().then(function(config) {
+        return config.djUrl + "api/v1/content" + path;
+      }).then(function(url) {
+        return new Promise(function(resolve, reject) {
+          window.request(url, function(error, xhr) {
+            if (error) {
+              console.error(error);
+              return reject(xhr);
+            }
+
+            return resolve(xhr);
+          }, { "Content-Type": "text/plain" }, "PUT", body);
+        });
+      });
+    },
+
+    post: function(path, body) {
+      return this.getConfig().then(function(config) {
+        return config.djUrl + "api/v1/content" + path;
+      }).then(function(url) {
+        return new Promise(function(resolve, reject) {
+          window.request(url, function(error, xhr) {
+            if (error) {
+              console.error(error);
+              return reject(xhr);
+            }
+
+            return resolve(xhr);
+          }, { "Content-Type": "text/plain" }, "POST", body);
+        });
+      })
+    },
+
+    delete: function(path) {
+      return this.getConfig().then(function(config) {
+        return config.djUrl + "api/v1/content" + path;
+      }).then(function(url) {
+        return new Promise(function(resolve, reject) {
+          window.request(url, function(error, xhr) {
+            if (error) {
+              console.error(error);
+              return reject(xhr);
+            }
+
+            return resolve(xhr);
+          }, undefined, "DELETE");
+        });
+      });
+    },
+
+    login: function() {
+      return this.getConfig().then(function(config) {
+        var url = config.gitlabUrl + '/oauth/authorize',
+          left = 0.25 * window.innerWidth,
+          top = 0.125 * window.innerHeight,
+          width = 0.5 * window.innerWidth,
+          height = 0.75 * window.innerHeight;
+        window.open(url +
+            '?response_type=code' +
+            '&client_id=' + config.applicationId +
+            '&redirect_uri=' + config.redirectUrl,
+            'Signin',
+            "top=" + top + "," +
+            "left=" + left + "," +
+            "height=" + height + "," +
+            "width=" + width);
+      });
+    },
+
+    _authorizationChanged: function(authorization) {
+      if (authorization && authorization.username && authorization.state == 'active') {
+        this.user = authorization.username;
+        if (authorization.avatar_url && authorization.avatar_url != '') {
+            this.$.avatar.style.backgroundImage = 'url(' + authorization.avatar_url + ')';
+            this.$.avatar.style.backgroundColor = 'inherit';
+            Polymer.dom(this.$.avatar).textContent = '';
+        } else {
+            this.$.avatar.style.backgroundColor = 'white';
+            Polymer.dom(this.$.avatar).textContent = authorization.username.substr(0, 1).toUpperCase();
+        }
+        console.log('Authorized as ' + this.user);
+
+        this.fire('editor-authorized', {
+          authorized: true,
+          user: this.user,
+          id: authorization.id,
+          access_token: authorization.access_token
+        });
+      } else {
+        this.user = null;
+        console.log('De-authorized.');
+        this.fire('editor-authorized', { authorized: false, user: null });
+      }
+    },
+
+    /* Called by authenticate.html on completion of the OAuth sequence
+     * with the backend and GitLab server */
+    authenticated: function(authorization) {
+      this.authorization = authorization;
+    },
+
+    attached: function() {
+      if (window.authenticated) {
+        console.error("window.authenticated already exists!");
+      }
+      window.authenticated = this.authenticated.bind(this);
+
+      this.app = document.body.querySelector("dj-app");
+
+      if (typeof window.request !== 'function') {
+        setTimeout(this.attached.bind(this), 100);
+        return;
+      }
+      window.request('authenticate/check', function(error, xhr) {
+        if (error) {
+          console.log('Error returned during authentication check: ', error);
+          return;
+        }
+
+        try {
+          var auth = JSON.parse(xhr.response);
+          this.authorization = auth;
+        } catch (err) {
+          console.log('Error while parsing authentication check.');
+        }
+      }.bind(this));
+    }
+  });
+  </script>
+</dom-module>

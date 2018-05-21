@@ -1,0 +1,106 @@
+<!--
+ * Copyright (C) 2017-2018 Intel Corporation
+ * SPDX-License-Identifier: Apache-2.0
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+
+<!-- paper-dropdown-menu is not including this when it should... -->
+<link rel="import" href="../../bower_components/neon-animation/web-animations.html">
+
+<dom-module id='clone-line'>
+  <template>
+    <style is="custom-style" include="iron-flex iron-flex-alignment iron-positioning">
+      :host {
+        --paper-input-container: {
+          padding: 0;
+        };
+
+        --paper-font-subhead: {
+          font-size: 0.9em;
+        };
+      }
+
+      paper-dropdown-menu {
+        width: 4em;
+        margin-right: 0.5em;
+      }
+
+      paper-listbox {
+        --paper-listbox: {
+        };
+      }
+
+      #url {
+        --paper-input-container-input: {
+          padding: 4px 0;
+        };
+      }
+
+      paper-item {
+        cursor: pointer;
+        font-size: 0.8em;
+        --paper-item-min-height: 2em;
+        padding: 4px 8px;
+      }
+    </style>
+    <div class="layout vertical">
+      <div>Git clone information</div>
+      <div class="layout horizontal end">
+        <paper-dropdown-menu no-label-float class="self-shrink">
+          <paper-listbox slot="dropdown-content" selected="{{selected}}">
+            <paper-item>https</paper-item>
+            <paper-item>ssh</paper-item>
+          </paper-listbox>
+        </paper-dropdown-menu>
+        <paper-input no-label-float class="flex" readonly on-focus="_urlFocus" id="url"></paper-input>
+      </div>
+    </div>
+    </template>
+    <script>
+      Polymer({
+        is: "clone-line",
+        properties: {
+          host: String,
+          path: String,
+          base: String,
+          selected: {
+            type: Number,
+            value: 0
+          }
+        },
+        observers: [
+          "_setURL(selected, host, path, base)"
+        ],
+
+        _setURL: function(selected, host, path, base) {
+          if (!host || !path) {
+            return;
+          }
+
+          if (selected == 0) {
+            this.$.url.value = 'git clone ' + host + path + base + '.git';
+          } else {
+            this.$.url.value = 'git clone git@' +
+              host.replace(/https?:\/\/(.*)$/, '$1') +
+              base.replace(/^\//, ':') + '.git';
+          }
+
+          this.$.url.focus();
+        },
+
+        _urlFocus: function() {
+          this.$.url.$.input.inputElement.setSelectionRange(0, this.$.url.value.length + 1);
+        },
+
+        ready: function() {
+        }
+    });
+  </script>
+</dom-module>

@@ -4,7 +4,6 @@
   "description": "Developer Journey",
   "main": "server/app.js",
   "scripts": {
-    "debug": "node node_modules/node-inspector/bin/node-debug.js ./server/app.js",
     "start": "node ./server/app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -14,11 +13,8 @@
     "body-parser": "^1.17.2",
     "express": "^4.15.2",
     "js-yaml": "^3.10.0",
-    "markdown-it": "^6.1.1",
-    "morgan": "^1.8.1",
-    "node-inspector": "^1.1.1",
-    "node-gyp": "^3.6.2",
-    "node-inspector": "^1.1.1"
+    "markdown-it": "^13.0.1",
+    "morgan": "^1.8.1"
   },
   "jshintConfig": {
     "undef": true,
